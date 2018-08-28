@@ -1,3 +1,26 @@
+# Project Specific Files & Directories
+*.h5
+*.hdf5
+*.npz
+*.savez
+data/
+results/
+logs/
+data
+results
+logs
+train.csv
+valid.csv
+notes.txt
+*.conf
+*.ini
+*.config
+*-ignore.py
+*-ignore.ipynb
+TensorBoard_logs
+TensorBoard_logs/
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
