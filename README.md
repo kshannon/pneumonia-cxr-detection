@@ -13,6 +13,11 @@ Project Website: https://www.kaggle.com/c/rsna-pneumonia-detection-challenge
 ## Data
 Data is availble from Kaggle's competition Page: https://www.kaggle.com/c/rsna-pneumonia-detection-challenge/data
 
+Here is a sample, negative for pneumonia:
+<br />
+<br />
+<img src="images/sample-img.png" alt="drawing" width="258px"/> 
+
 ## Prerequisites
 Raise: TODO
 
