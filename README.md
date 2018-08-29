@@ -2,7 +2,6 @@
 RSNA Pneumonia Chest Radiograph (CXR) Detection Challenge
 
 Project Website: https://www.kaggle.com/c/rsna-pneumonia-detection-challenge
-Raise: TODO
 
 # Table of Contents
 1. [Data](#Data)
@@ -25,5 +24,6 @@ Raise: TODO
 
 
 ## Authors
-- [Kyle Shannon](https://github.com/kshannon)
 - [Chris Chen](https://github.com/utcsox)
+- [Tony Reina](https://github.com/tonyreina)
+- [Kyle Shannon](https://github.com/kshannon)
