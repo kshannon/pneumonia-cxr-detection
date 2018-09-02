@@ -19,6 +19,8 @@ TensorBoard_logs
 TensorBoard_logs/
 .vscode/
 .DS_Store
+misc/
+events.out.tfevents.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
