@@ -49,6 +49,7 @@ config.read('../config/data_path.ini')
 try:
     stage_1 = config.get('stage_1', 'data_path')
     stage_1_img_dir = config.get('stage_1', 'train_img_dir') #DEBUG have a 'train_imgs/' <-- with a slash
+    stage_1_png_dir = config.get('stage_1', 'train_png_dir')
 
 except:
     print('Error reading data_path.ini, try checking data paths in the .ini')
@@ -60,18 +61,21 @@ except:
 ########################################
 DATA_PATH = stage_1 #path to stage 1 data from config
 IMG_DIR = stage_1_img_dir
+PNG_DIR = stage_1_png_dir #using pngs currently over dicom (post dicom decode)
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 PREFETCH_SIZE = 1
-IMG_RESIZE_X = 1024
-IMG_RESIZE_Y = 1024
-CHANNELS = 1
+IMG_RESIZE_X = 320
+IMG_RESIZE_Y = 320
+CHANNELS = 3
 LEARNING_RATE = 0.0001
 # DECAY_FACTOR = 10 #learning rate decayed when valid. loss plateaus after an epoch
 ADAM_B1 = 0.9 #adam optimizer default beta_1 value (Kingma & Ba, 2014)
 ADAM_B2 = 0.999 #adam optimizer default beta_2 value (Kingma & Ba, 2014)
 MAX_ROTAT_DEGREES = 30 #up to 30 degrees img rotation.
 MIN_ROTAT_DEGREES = 0
+
+EXTENSION = '.png' # '.dcm'
 
 TB_LOG_DIR = "../logs/"
 CHECKPOINT_FILENAME = "../checkpoints/Baseline_{}.hdf5".format(time.strftime("%Y%m%d_%H%M%S"))# Save Keras model to this file
@@ -95,12 +99,12 @@ def split_data_labels(csv_path, path):
         for line in f:
             new_line = line.strip().split(',')
             #[0]=patientID (same as DICOM name) [5]=Target
-            filenames.append(path + new_line[0]+'.dcm')
-            labels.append(new_line[5]) #DEBUG float??? was float before
+            filenames.append(path + new_line[0]+EXTENSION)
+            labels.append(int(new_line[5])) #DEBUG float??? was float before
     return filenames,labels
 
-train_imgs, train_labels = split_data_labels(train_paths, DATA_PATH+IMG_DIR)
-valid_imgs, valid_labels = split_data_labels(valid_paths, DATA_PATH+IMG_DIR)
+train_imgs, train_labels = split_data_labels(train_paths, DATA_PATH+PNG_DIR)
+valid_imgs, valid_labels = split_data_labels(valid_paths, DATA_PATH+PNG_DIR)
 
 
 ########################################
@@ -109,42 +113,16 @@ valid_imgs, valid_labels = split_data_labels(valid_paths, DATA_PATH+IMG_DIR)
 def decode(filename, label):
     pass
 
-    
-#TODO deal with DOCOM.....
+#TODO deal with DOCOM..... PNG for now
 def preprocess_img(filename, label):
     """
     Read filepaths and decode into numerical tensors
     Ensure img is the required dim and has been normalized to ImageNet mean/std
     """
-
-    #DEBUG....... TODO......
-    ds = pydicom.dcmread(filename)
-    image = ds.pixel_array
-    # print(filename)
-    # sitk_t1 = sitk.ReadImage(filename)
-    # image = sitk.GetArrayFromImage(sitk_t1)
-    
-    # sys.exit()
-    # print(type(filename))
-
-    # image_string = tf.read_file(filename)
-
-    # # print(image_string)
-    # # print('='*50)
-
-    # dcm_data = pydicom.read_file(image_string)
-    # image = dcm_data.pixel_array
-
-    # print(im)
-    # print(type(im))
-    # print(im.dtype)
-    # print(im.shape)
-    # sys.exit()
-
-    # image_string = tf.read_file(filename)
-    # image = tf.image.decode_jpeg(image_string, channels=CHANNELS) # Don't use tf.image.decode_image
-    # image = tf.image.convert_image_dtype(image, tf.float32) #convert to float values in [0, 1]
-    # image = tf.image.resize_images(image, [IMG_RESIZE_X, IMG_RESIZE_Y])
+    image_string = tf.read_file(filename)
+    image = tf.image.decode_png(image_string, channels=CHANNELS) # Don't use tf.image.decode_image
+    image = tf.image.convert_image_dtype(image, tf.float32) #convert to float values in [0, 1]
+    image = tf.image.resize_images(image, [IMG_RESIZE_X, IMG_RESIZE_Y])
     return image, label
 
 def img_augmentation(image, label):
@@ -158,13 +136,12 @@ def img_augmentation(image, label):
 def build_dataset(data, labels):
     """todo"""
     labels = tf.one_hot(tf.cast(labels, tf.uint8), 1) #cast labels to dim 2 tf obj
-    data = pydicom.dcmread(data).pixel_array
     dataset = tf.data.Dataset.from_tensor_slices((data, labels))
     dataset = dataset.shuffle(len(data))
     dataset = dataset.repeat()
-    dataset = dataset.map(decode)
-    # dataset = dataset.map(preprocess_img, num_parallel_calls=2)
-    # dataset = dataset.map(img_augmentation, num_parallel_calls=2)
+    # dataset = dataset.map(decode)
+    dataset = dataset.map(preprocess_img, num_parallel_calls=2)
+    dataset = dataset.map(img_augmentation, num_parallel_calls=2)
     dataset = dataset.batch(BATCH_SIZE) # (?, x, y) unknown batch size because the last batch will have fewer elements.
     dataset = dataset.prefetch(PREFETCH_SIZE) #single training step consumes n elements
     return dataset
@@ -176,10 +153,7 @@ def build_dataset(data, labels):
 def main():
     with tf.device('/cpu:0'):
         print("Building Train/Validation Dataset Objects")
-        print(train_imgs[0])
         train_dataset = build_dataset(train_imgs, train_labels)
-        print(type(train_imgs))
-        sys.exit()
         valid_dataset = build_dataset(valid_imgs, valid_labels)
 
 
@@ -212,6 +186,7 @@ def main():
             save_best_only=True)
 
     # https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/TensorBoard
+    #TODO custom tensorboard log file names..... or write to unqiue dir as a sub dir in the logs file...
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR,
             # histogram_freq=1, #this screwed us over... caused tensorboard callback to fail.. why??? DEBUG !!!!!!
             # batch_size=BATCH_SIZE, # and take this out... and boom.. histogam frequency works. sob
