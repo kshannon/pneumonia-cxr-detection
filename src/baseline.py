@@ -48,9 +48,6 @@ config = ConfigParser()
 config.read('../config/data_path.ini')
 try:
     stage_1 = config.get('stage_1', 'data_path')
-    stage_1_img_dir = config.get('stage_1', 'train_img_dir') #DEBUG have a 'train_imgs/' <-- with a slash
-    stage_1_png_dir = config.get('stage_1', 'train_png_dir')
-
 except:
     print('Error reading data_path.ini, try checking data paths in the .ini')
     sys.exit(1)
@@ -60,8 +57,8 @@ except:
 ######      GLOBAL CONSTANTS      ######
 ########################################
 DATA_PATH = stage_1 #path to stage 1 data from config
-IMG_DIR = stage_1_img_dir
-PNG_DIR = stage_1_png_dir #using pngs currently over dicom (post dicom decode)
+IMG_DIR = DATA_PATH + 'stage_1_train_pngs/'
+PNG_DIR = DATA_PATH + 'stage_1_train_images/' #using pngs currently over dicom (post dicom decode)
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 PREFETCH_SIZE = 1
