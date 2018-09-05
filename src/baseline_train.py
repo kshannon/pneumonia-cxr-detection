@@ -62,8 +62,8 @@ PNG_DIR = DATA_PATH + 'stage_1_train_images/' #using pngs currently over dicom (
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 PREFETCH_SIZE = 1
-IMG_RESIZE_X = 320
-IMG_RESIZE_Y = 320
+IMG_RESIZE_X = 1024
+IMG_RESIZE_Y = 1024
 CHANNELS = 3
 LEARNING_RATE = 0.0001
 # DECAY_FACTOR = 10 #learning rate decayed when valid. loss plateaus after an epoch
@@ -132,7 +132,14 @@ def img_augmentation(image, label):
 
 def build_dataset(data, labels):
     """todo"""
-    labels = tf.one_hot(tf.cast(labels, tf.uint8), 1) #cast labels to dim 2 tf obj
+    # class_labels = tf.one_hot(tf.cast(labels[4], tf.uint8), 1) #cast labels to dim 2 tf obj
+    class_labels = tf.cast(labels[4], tf.int8) #cast labels to dim 2 tf obj
+    bbox_labels = [tf.cast(labels[0:4], tf.float32)]
+    labels = [class_label, bbox_labels]
+    print(labels)
+    print(type(labels))
+    print(type(labels[0]))
+    print(type(labels[1]))
     dataset = tf.data.Dataset.from_tensor_slices((data, labels))
     dataset = dataset.shuffle(len(data))
     dataset = dataset.repeat()
@@ -143,8 +150,51 @@ def build_dataset(data, labels):
     dataset = dataset.prefetch(PREFETCH_SIZE) #single training step consumes n elements
     return dataset
 
-
 ########################################
+######     Model Definitions      ######
+########################################
+
+def LeNet(img_x,img_y,channels):
+    """ todo """
+    input_img = keras.layers.Input(shape=img_x, img_y, channels)
+
+    conv1 = keras.layers.Conv2D(filters=20, kernel_size=(5,5))(input_img)
+	conv1 = keras.layers.Activation('relu')(conv1)
+    pool1 = keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2))(conv1)
+    dropout1 = keras.layers.Dropout(0.25)(pool1)
+
+    conv2 = keras.layers.Conv2D(filters=50, kernel_size=(5,5))(dropout1)
+	conv2 = keras.layers.Activation('relu')(conv2)
+    pool2 = keras.layers.MaxPooling2D(pool_size=(2,2))(conv2)
+    dropout2 = keras.layers.Dropout(0.25)(pool2)
+    flatten = keras.layers.Flatten()(dropout2)
+    dense1 = Keras.layers.Dense(128)(flatten)
+
+    classification = keras.layers.Dense(1, activation='sigmoid')(dense1)
+    bounding_box = keras.layers.Dense(4)(dense1)
+    outputs=[classification, bounding_box]
+
+    model = keras.models.Model(inputs=[input_img], outputs=outputs)
+    return model
+
+
+def dense_net169(img_x,img_y,channels,label_shape,classes=2):
+    """ todo """
+    print("Downloading DenseNet PreTrained Weights... Might take ~0:30 seconds")
+    DenseNet169 = tf.keras.applications.densenet.DenseNet169(include_top=False,
+            weights='imagenet',
+            input_tensor=None,
+            input_shape=(img_x, img_y, channels),
+            pooling='max',
+            classes=classes)
+    last_layer = DenseNet169.output
+    # print(last_layer)
+    preds = tf.keras.layers.Dense(label_shape[-1], activation='sigmoid')(last_layer)
+    model = tf.keras.Model(DenseNet169.input, preds)
+    return model
+
+
+#####################################
 ######        TRAIN LOOP          ######
 ########################################
 def main():
@@ -154,17 +204,8 @@ def main():
         valid_dataset = build_dataset(valid_imgs, valid_labels)
 
 
-    print("Downloading DenseNet PreTrained Weights... Might take ~0:30 seconds")
-    DenseNet169 = tf.keras.applications.densenet.DenseNet169(include_top=False,
-            weights='imagenet',
-            input_tensor=None,
-            input_shape=(IMG_RESIZE_X, IMG_RESIZE_Y, CHANNELS),
-            pooling='max',
-            classes=2)
-    last_layer = DenseNet169.output
-    # print(last_layer)
-    preds = tf.keras.layers.Dense(1, activation='sigmoid')(last_layer)
-    model = tf.keras.Model(DenseNet169.input, preds)
+    #Instantiate MODEL:
+    model = lenet(IMG_RESIZE_X,IMG_RESIZE_Y,CHANNELS) #tf.dataset.shape???
 
     # https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE,
