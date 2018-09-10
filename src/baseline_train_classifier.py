@@ -29,7 +29,7 @@ model.compile(loss="binary_crossentropy",
               optimizer="Adam",
               metrics=["accuracy"])
 
-data_path = "rsna_data_numpy/"
+data_path = "../../rsna_data_numpy/"
 
 imgs_train = np.load(os.path.join(data_path, "imgs_train.npy"),
 						 mmap_mode="r", allow_pickle=False)
