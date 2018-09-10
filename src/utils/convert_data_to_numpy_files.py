@@ -5,14 +5,16 @@ from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
 
-path = "rsna_data_numpy/"
+root_dir = "../../.."
+
+path = os.path.join(root_dir, "rsna_data_numpy/")
 os.mkdir( path );
 
-df = pd.read_csv("stage_1_train_labels.csv")
+df = pd.read_csv(os.path.join(root_dir, "stage_1_train_labels.csv"))
 
 #filename = "training_images/6a35c51e-1d5b-4a08-b863-071916d08d79.dcm"
 #filename = "training_images/00704310-78a8-4b38-8475-49f4573b2dbb.dcm"
-filename = "training_images/00436515-870c-4b36-a041-de91049b9ab4.dcm"
+filename = os.path.join(root_dir, "training_images/00436515-870c-4b36-a041-de91049b9ab4.dcm")
 itkimage = sitk.ReadImage(filename)
 
 array = sitk.GetArrayFromImage(itkimage)
@@ -42,12 +44,13 @@ idx = 0
 with tqdm(total=df.shape[0]) as pbar:
     for index, row in df.iterrows():
 
-        filename = "training_images/" + row.patientId + ".dcm"
+        filename = os.path.join(root_dir, "training_images/" + row.patientId + ".dcm")
 
         itkimage = sitk.ReadImage(filename)
 
         array = sitk.GetArrayFromImage(itkimage)
         array = np.fliplr(np.rot90(np.swapaxes(array,0,2),-1))
+        array = array / np.max(array)
         #plt.imshow(array[:,:,0], cmap="bone")
         #plt.show()
 
@@ -72,7 +75,7 @@ with tqdm(total=df.shape[0]) as pbar:
 
         pbar.update(1)
 
-
+path = os.path.join(root_dir, path)
 np.save(os.path.join(path, "imgs_train.npy"), imgs_train)
 np.save(os.path.join(path, "labels_train.npy"), labels_train)
 np.save(os.path.join(path, "bboxes_train.npy"), bboxes_train)
