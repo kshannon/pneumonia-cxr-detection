@@ -75,7 +75,6 @@ with tqdm(total=df.shape[0]) as pbar:
 
         pbar.update(1)
 
-path = os.path.join(root_dir, path)
 np.save(os.path.join(path, "imgs_train.npy"), imgs_train)
 np.save(os.path.join(path, "labels_train.npy"), labels_train)
 np.save(os.path.join(path, "bboxes_train.npy"), bboxes_train)
