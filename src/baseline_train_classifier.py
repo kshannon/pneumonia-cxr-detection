@@ -60,11 +60,14 @@ def define_model(input_shape=(1024,1024,1), dropout=0.5):
 	conv5 = K.layers.Conv2D(name="conv5a", filters=512, **params)(pool4)
 	conv5 = K.layers.Conv2D(name="conv5b", filters=512, **params)(conv5)
 
-
-	flat1 = K.layers.Flatten()(conv5)
-	dense1 = K.layers.Dense(128, activation="relu")(flat1)
-	drop1 = K.layers.Dropout(dropout)(dense1)
-	prediction = K.layers.Dense(1, activation="sigmoid")(drop1)
+	gap1 = K.layers.GlobalAverage2D()(conv5)
+	conv6 = K.layers.Conv2D(filters=512, kernel_size=(1,1),
+							activation="relu", padding="same")(gap1)
+	drop1 = K.layers.Dropout(dropout)(conv6)
+	conv7 = K.layers.Conv2D(filters=128, kernel_size=(1,1),
+							activation="relu", padding="same")(drop1)
+	prediction = K.layers.Conv2D(filters=1, kernel_size=(1,1),
+								activation="sigmoid")(conv7)
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
