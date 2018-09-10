@@ -4,7 +4,6 @@ import numpy as np
 import os
 
 batch_size = 32
-image_shape = (1024,1024,1)
 epochs = 12
 
 data_path = "../../rsna_data_numpy/"
@@ -27,9 +26,9 @@ def F1_score(y_true, y_pred, smooth=1.0):
    coef = numerator / denominator
    return tf.reduce_mean(coef)
 
-def define_model(input_shape=(1024,1024,1), dropout=0.5):
+def define_model(dropout=0.5):
 
-	inputs = K.layers.Input(shape=input_shape, name="Images")
+	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
 	params = dict(kernel_size=(3, 3), activation="relu",
 				  padding="valid",
@@ -61,13 +60,10 @@ def define_model(input_shape=(1024,1024,1), dropout=0.5):
 	conv5 = K.layers.Conv2D(name="conv5b", filters=512, **params)(conv5)
 
 	gap1 = K.layers.GlobalAveragePooling2D()(conv5)
-	conv6 = K.layers.Conv2D(filters=512, kernel_size=(1,1),
-							activation="relu", padding="same")(gap1)
+	conv6 = K.layers.Dense(units=512,activation="relu")(gap1)
 	drop1 = K.layers.Dropout(dropout)(conv6)
-	conv7 = K.layers.Conv2D(filters=128, kernel_size=(1,1),
-							activation="relu", padding="same")(drop1)
-	prediction = K.layers.Conv2D(filters=1, kernel_size=(1,1),
-								activation="sigmoid")(conv7)
+	conv7 = K.layers.Dense(units=128, activation="relu")(drop1)
+	prediction = K.layers.Dense(units=1, activation="sigmoid")(conv7)
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
@@ -83,7 +79,7 @@ model_callback = K.callbacks.ModelCheckpoint("../models/baseline_classifier.h5",
 early_callback = K.callbacks.EarlyStopping(monitor="val_loss", patience=3, verbose=1)
 
 
-model = define_model(image_shape)
+model = define_model()
 
 model.fit(imgs_train, labels_train,
 		  epochs=epochs,
