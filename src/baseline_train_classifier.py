@@ -19,16 +19,7 @@ labels_train = np.load(os.path.join(data_path, "labels_train.npy"),
 labels_test = np.load(os.path.join(data_path, "labels_test.npy"),
 						 mmap_mode="r", allow_pickle=False)
 
-def focal_loss(y_true, y_pred, gamma=2., alpha=.25):
-
-	pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
-	pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
-
-	return -K.backend.sum(alpha * K.backend.pow(1. - pt_1, gamma)
-			* K.backend.log(pt_1))-K.backend.sum((1-alpha)
-			* K.backend.pow( pt_0, gamma) * K.backend.log(1. - pt_0))
-
-def dice_coef(y_true, y_pred, smooth=1.0):
+def F1_score(y_true, y_pred, smooth=1.0):
    intersection = tf.reduce_sum(y_true * y_pred)
    union = tf.reduce_sum(y_true + y_pred)
    numerator = tf.constant(2.) * intersection + smooth
@@ -77,9 +68,9 @@ def define_model(input_shape=(1024,1024,1), dropout=0.5):
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
-	model.compile(loss=[focal_loss],
+	model.compile(loss="binary_crossentropy",
 				  optimizer="Adam",
-				  metrics=["accuracy", dice_coef])
+				  metrics=["accuracy", F1_score])
 
 	return model
 
