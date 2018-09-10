@@ -42,7 +42,7 @@ labels_test = np.load(os.path.join(data_path, "labels_test.npy"),
 						 mmap_mode="r", allow_pickle=False)
 
 tb_callback = keras.callbacks.TensorBoard(log_dir="./logs")
-model_callback = keras.callbacks.ModelCheckpoint(filepath, monitor="val_loss", verbose=1, save_best_only=True)
+model_callback = keras.callbacks.ModelCheckpoint("../models/baseline_classifier.h5", monitor="val_loss", verbose=1, save_best_only=True)
 early_callback = keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, verbose=1)
 
 model.fit(imgs_train, labels_train,
