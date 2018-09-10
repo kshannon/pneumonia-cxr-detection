@@ -60,7 +60,7 @@ def define_model(input_shape=(1024,1024,1), dropout=0.5):
 	conv5 = K.layers.Conv2D(name="conv5a", filters=512, **params)(pool4)
 	conv5 = K.layers.Conv2D(name="conv5b", filters=512, **params)(conv5)
 
-	gap1 = K.layers.GlobalAverage2D()(conv5)
+	gap1 = K.layers.GlobalAveragePooling2D()(conv5)
 	conv6 = K.layers.Conv2D(filters=512, kernel_size=(1,1),
 							activation="relu", padding="same")(gap1)
 	drop1 = K.layers.Dropout(dropout)(conv6)
