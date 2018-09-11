@@ -70,15 +70,54 @@ def resnet_layer(inputs, fmaps, name):
 
 	return pool
 
-def resize_normalize(image):
-	"""
-	Resize images on the graph
-	"""
-	resized = tf.image.resize_images(image, (resize_height, resize_width))
+def simple_lenet():
 
-	return resized
+	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
-def define_model(dropout=0.5):
+	inputR = K.layers.Lambda(resize_normalize,
+							 input_shape=(None, None, 1),
+							 output_shape=(resize_height, resize_width,
+							 1))(inputs)
+
+	conv = K.layers.Conv2D(name="A", filters=128,
+						   kernel_size=(3, 3),
+						   activation="relu",
+						   padding="same",
+						   kernel_initializer="he_uniform")(inputR)
+
+	conv = K.layers.Conv2D(name="B", filters=256,
+						   kernel_size=(3, 3),
+						   activation="relu",
+						   padding="same",
+						   kernel_initializer="he_uniform")(conv)
+
+	pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
+
+	conv = K.layers.Conv2D(name="C", filters=512,
+						   kernel_size=(3, 3),
+						   activation="relu",
+						   padding="same",
+						   kernel_initializer="he_uniform")(pool)
+
+	conv = K.layers.Conv2D(name="D", filters=1024,
+						   kernel_size=(3, 3),
+						   activation="relu",
+						   padding="same",
+						   kernel_initializer="he_uniform")(conv)
+
+	pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
+
+	flat = K.layers.Flatten()(pool)
+
+	dense1 = K.layers.Dense(256, activation="relu")(flat)
+	dense2 = K.layers.Dense(128, activation="relu")(dense1)
+	prediction = K.layers.Dense(1, activation="sigmoid")(dense2)
+
+	model = K.models.Model(inputs=[inputs], outputs=[prediction])
+
+	return model
+
+def resnet():
 
 	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
@@ -120,11 +159,15 @@ def define_model(dropout=0.5):
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
-	model.compile(loss=dice_coef_loss, #"binary_crossentropy",
-				  optimizer=K.optimizers.Adam(lr=0.05),
-				  metrics=["accuracy", F1_score])
-
 	return model
+
+def resize_normalize(image):
+	"""
+	Resize images on the graph
+	"""
+	resized = tf.image.resize_images(image, (resize_height, resize_width))
+
+	return resized
 
 
 tb_callback = K.callbacks.TensorBoard(log_dir="./logs")
@@ -136,7 +179,12 @@ early_callback = K.callbacks.EarlyStopping(monitor="val_loss",
 				patience=3, verbose=1)
 
 
-model = define_model()
+model = simple_lenet()
+#model = resnet()
+
+model.compile(loss="binary_crossentropy",
+			  optimizer=K.optimizers.Adam(),
+			  metrics=["accuracy", F1_score])
 
 model.fit(imgs_train, labels_train,
 		  epochs=epochs,
