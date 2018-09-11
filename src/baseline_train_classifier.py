@@ -68,7 +68,11 @@ def define_model(dropout=0.5):
 				  padding="same",
 				  kernel_initializer="he_uniform")
 
-	conv = K.layers.Conv2D(name="1x1", filters=1, **params1x1)(pool4)
+	conv = K.layers.Conv2D(name="NiN1", filters=256, **params1x1)(pool4)
+	conv = K.layers.Dropout(dropout)(conv)
+	conv = K.layers.Conv2D(name="NiN2", filters=128, **params1x1)(conv)
+	conv = K.layers.Dropout(dropout)(conv)
+	conv = K.layers.Conv2D(name="1x1", filters=1, **params1x1)(conv)
 
 	gap1 = K.layers.GlobalAveragePooling2D()(conv)
 
