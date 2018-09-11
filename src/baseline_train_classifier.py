@@ -50,39 +50,26 @@ def simple_lenet():
 							 output_shape=(resize_height, resize_width,
 							 1))(inputs)
 
-	conv = K.layers.Conv2D(name="A", filters=128,
+	conv = K.layers.Conv2D(filters=32,
 						   kernel_size=(3, 3),
 						   activation="relu",
-						   padding="same",
+						   padding="valid",
 						   kernel_initializer="he_uniform")(inputR)
 
-	conv = K.layers.Conv2D(name="B", filters=256,
+	conv = K.layers.Conv2D(filters=64,
 						   kernel_size=(3, 3),
 						   activation="relu",
-						   padding="same",
+						   padding="valid",
 						   kernel_initializer="he_uniform")(conv)
 
 	pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
+	dropout = K.layers.Dropout(0.25)(pool)
 
-	conv = K.layers.Conv2D(name="C", filters=512,
-						   kernel_size=(3, 3),
-						   activation="relu",
-						   padding="same",
-						   kernel_initializer="he_uniform")(pool)
-
-	conv = K.layers.Conv2D(name="D", filters=1024,
-						   kernel_size=(3, 3),
-						   activation="relu",
-						   padding="same",
-						   kernel_initializer="he_uniform")(conv)
-
-	pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
-
-	flat = K.layers.Flatten()(pool)
+	flat = K.layers.Flatten()(dropout)
 
 	dense1 = K.layers.Dense(256, activation="relu")(flat)
-	dense2 = K.layers.Dense(128, activation="relu")(dense1)
-	prediction = K.layers.Dense(1, activation="sigmoid")(dense2)
+	dropout = K.layers.Dropout(0.25)(dense1)
+	prediction = K.layers.Dense(1, activation="sigmoid")(dropout)
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
