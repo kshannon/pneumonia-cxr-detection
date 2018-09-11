@@ -3,8 +3,10 @@ import keras as K
 import numpy as np
 import os
 
-batch_size = 128
+batch_size = 1024
 epochs = 12
+resize_height = 128  # Resize images to this height
+resize_width = 128   # Resize images to this width
 
 data_path = "../../rsna_data_numpy/"
 
@@ -45,21 +47,21 @@ def resnet_layer(inputs, fmaps, name):
 
 	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps*2,
 							kernel_size=(1, 1), activation="linear",
-				  			padding="same",
-				  			kernel_initializer="he_uniform")(inputs)
+							padding="same",
+							kernel_initializer="he_uniform")(inputs)
 	conv1b = K.layers.BatchNormalization()(conv1)
 
 	conv1b = K.layers.Conv2D(name=name+"b", filters=fmaps,
 							 kernel_size=(3, 3), activation="linear",
-						 	 padding="same",
-						 	 kernel_initializer="he_uniform")(conv1b)
+							 padding="same",
+							 kernel_initializer="he_uniform")(conv1b)
 	conv1b = K.layers.BatchNormalization()(conv1b)
 	conv1b = K.layers.Activation("relu")(conv1b)
 
 	conv1b = K.layers.Conv2D(name=name+"c", filters=fmaps*2,
 							 kernel_size=(1, 1), activation="linear",
-				  			 padding="same",
-				  			 kernel_initializer="he_uniform")(conv1b)
+							 padding="same",
+							 kernel_initializer="he_uniform")(conv1b)
 
 	conv_add = K.layers.Add(name=name+"_add")([conv1, conv1b])
 	conv_add = K.layers.BatchNormalization()(conv_add)
@@ -68,20 +70,35 @@ def resnet_layer(inputs, fmaps, name):
 
 	return pool
 
+def resize_normalize(image):
+	"""
+	Resize images on the graph
+	"""
+	resized = tf.image.resize_images(image, (resize_height, resize_width))
+
+	return resized
+
 def define_model(dropout=0.5):
 
 	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
-	pool1 = resnet_layer(inputs, 16, "conv1")
+	inputR = K.layers.Lambda(resize_normalize,
+							 input_shape=(None, None, 1),
+							 output_shape=(resize_height, resize_width,
+							 1))(inputs)
+
+	pool1 = resnet_layer(inputR, 16, "conv1")
 	pool2 = resnet_layer(pool1, 32, "conv2")
-	pool3 = resnet_layer(pool2, 64, "conv3")
-	pool4 = resnet_layer(pool3, 128, "conv4")
+	#pool3 = resnet_layer(pool2, 64, "conv3")
+	#pool4 = resnet_layer(pool3, 128, "conv4")
+
+	pool = pool2
 
 	conv = K.layers.Conv2D(name="NiN1", filters=256,
 						   kernel_size=(1, 1),
 						   activation="relu",
 						   padding="same",
-						   kernel_initializer="he_uniform")(pool4)
+						   kernel_initializer="he_uniform")(pool)
 	conv = K.layers.Dropout(dropout)(conv)
 
 	conv = K.layers.Conv2D(name="NiN2", filters=128,
