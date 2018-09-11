@@ -13,6 +13,7 @@ from configparser import ConfigParser
 import h5py
 import pathlib
 from glob import glob
+from tqdm import tqdm
 import pydicom
 import numpy as np
 import tensorflow as tf
@@ -36,7 +37,7 @@ parser.add_argument('-batch_size',
                     type=int,
                     action="store",
                     dest="batch_size",
-                    default=4,
+                    default=1,
                     help='Number of DICOM imgs to send to the network per batch, default = 4')
 args = parser.parse_args()
 
@@ -62,8 +63,8 @@ PNG_DIR = DATA_PATH + 'stage_1_train_images/' #using pngs currently over dicom (
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 PREFETCH_SIZE = 1
-IMG_RESIZE_X = 1024
-IMG_RESIZE_Y = 1024
+IMG_RESIZE_X = 128
+IMG_RESIZE_Y = 128
 CHANNELS = 3
 LEARNING_RATE = 0.0001
 # DECAY_FACTOR = 10 #learning rate decayed when valid. loss plateaus after an epoch
@@ -84,7 +85,7 @@ MODEL_FILENAME = "../models/Baseline_model.h5"
 ########################################
 train_paths = DATA_PATH + 'train.csv' #DEBUG
 valid_paths = DATA_PATH + 'validate.csv'
-print("Using Full train/valid dataset. Data path: '{}'".format(DATA_PATH))
+print('\033[95m' + 'Reading & parsing train/validation data...' + '\033[0m')
 
 
 def split_data_labels(csv_path, path):
@@ -97,12 +98,12 @@ def split_data_labels(csv_path, path):
             new_line = line.strip().split(',')
             #[0]=patientID (same as DICOM name) [5]=Target
             filenames.append(path + new_line[0]+EXTENSION)
-            labels.append(int(new_line[5])) #DEBUG float??? was float before
+            labels.append(new_line[1:]) #DEBUG float??? was float before ... [1:] is the bbox x,y,w,h,prob
     return filenames,labels
 
 train_imgs, train_labels = split_data_labels(train_paths, DATA_PATH+PNG_DIR)
 valid_imgs, valid_labels = split_data_labels(valid_paths, DATA_PATH+PNG_DIR)
-
+print('\033[94m' + 'Data parsed correctly!' + '\033[0m')
 
 ########################################
 ######      HELPER FUNCTIONS      ######
@@ -110,7 +111,7 @@ valid_imgs, valid_labels = split_data_labels(valid_paths, DATA_PATH+PNG_DIR)
 def decode(filename, label):
     pass
 
-#TODO deal with DOCOM..... PNG for now
+#TODO deal with DICOM..... PNG for now
 def preprocess_img(filename, label):
     """
     Read filepaths and decode into numerical tensors
@@ -124,28 +125,44 @@ def preprocess_img(filename, label):
 
 def img_augmentation(image, label):
     """ Call this on minibatch at time of training """
-    image = tf.image.random_flip_left_right(image) #lateral inversion with P(0.5)
+    # image = tf.image.random_flip_left_right(image) #lateral inversion with P(0.5)
     #TODO dont think we need rotation because IMGs are 2d and always presented as the coronal plane...
     # image = tf.image.rot90(image, k=randint(0, 4)) #not 0-30 degrees, but 90 degree increments... so sue me!
     image = tf.clip_by_value(image, 0.0, 1.0) #ensure [0.0,1.0] img constraint
     return image, label
 
+def format_labels(labels):
+    """ Takes csv labels and casts them into tensorflow objects in separate indexed lists"""
+    class_labels,bbox_labels = [],[]
+    for label in tqdm(labels):
+        bbox = label[0:-1]
+        classification = label[-1]
+        class_labels.append(tf.cast(classification, tf.int8))
+        bbox_labels.append(tf.cast(bbox, tf.float32))
+        # print(type(class_labels[0]))
+        # print(class_labels[0])
+        # print(type(bbox_labels[0]))
+        # print(bbox_labels[0])
+        # sys.exit()
+    return class_labels, bbox_labels
+
 def build_dataset(data, labels):
     """todo"""
     # class_labels = tf.one_hot(tf.cast(labels[4], tf.uint8), 1) #cast labels to dim 2 tf obj
-    class_labels = tf.cast(labels[4], tf.int8) #cast labels to dim 2 tf obj
-    bbox_labels = [tf.cast(labels[0:4], tf.float32)]
-    labels = [class_label, bbox_labels]
-    print(labels)
-    print(type(labels))
-    print(type(labels[0]))
-    print(type(labels[1]))
+    labels = format_labels(labels)
+    # print(type(labels[0][0]))
+    # print(labels[0][0])
+    # print(type(labels[1][0]))
+    # print(labels[1][0])
+    # # break
+    # sys.exit()
+
     dataset = tf.data.Dataset.from_tensor_slices((data, labels))
     dataset = dataset.shuffle(len(data))
     dataset = dataset.repeat()
     # dataset = dataset.map(decode)
     dataset = dataset.map(preprocess_img, num_parallel_calls=2)
-    dataset = dataset.map(img_augmentation, num_parallel_calls=2)
+    # dataset = dataset.map(img_augmentation, num_parallel_calls=2)
     dataset = dataset.batch(BATCH_SIZE) # (?, x, y) unknown batch size because the last batch will have fewer elements.
     dataset = dataset.prefetch(PREFETCH_SIZE) #single training step consumes n elements
     return dataset
@@ -153,22 +170,21 @@ def build_dataset(data, labels):
 ########################################
 ######     Model Definitions      ######
 ########################################
-
-def LeNet(img_x,img_y,channels):
-    """ todo """
-    input_img = keras.layers.Input(shape=img_x, img_y, channels)
+def lenet(img_x,img_y,channels):
+    """ Modern take on the 1998 classic by LeCun! """
+    input_img = keras.layers.Input(shape=(img_x,img_y,channels))
 
     conv1 = keras.layers.Conv2D(filters=20, kernel_size=(5,5))(input_img)
-	conv1 = keras.layers.Activation('relu')(conv1)
+    conv1 = keras.layers.Activation('relu')(conv1)
     pool1 = keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2))(conv1)
     dropout1 = keras.layers.Dropout(0.25)(pool1)
 
     conv2 = keras.layers.Conv2D(filters=50, kernel_size=(5,5))(dropout1)
-	conv2 = keras.layers.Activation('relu')(conv2)
+    conv2 = keras.layers.Activation('relu')(conv2)
     pool2 = keras.layers.MaxPooling2D(pool_size=(2,2))(conv2)
     dropout2 = keras.layers.Dropout(0.25)(pool2)
     flatten = keras.layers.Flatten()(dropout2)
-    dense1 = Keras.layers.Dense(128)(flatten)
+    dense1 = keras.layers.Dense(128)(flatten)
 
     classification = keras.layers.Dense(1, activation='sigmoid')(dense1)
     bounding_box = keras.layers.Dense(4)(dense1)
@@ -199,9 +215,10 @@ def dense_net169(img_x,img_y,channels,label_shape,classes=2):
 ########################################
 def main():
     with tf.device('/cpu:0'):
-        print("Building Train/Validation Dataset Objects")
+        print('\033[95m' + "Building dataset objects..." + '\033[0m' + '\n')
         train_dataset = build_dataset(train_imgs, train_labels)
         valid_dataset = build_dataset(valid_imgs, valid_labels)
+        print('\n' + '\033[94m' + 'tf.dataset objects successfully built!' + '\033[0m')
 
 
     #Instantiate MODEL:
@@ -224,7 +241,7 @@ def main():
             save_best_only=True)
 
     # https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/TensorBoard
-    #TODO custom tensorboard log file names..... or write to unqiue dir as a sub dir in the logs file...
+    #TODO custom tensorboard log file names..... or write to unique dir as a sub dir in the logs file...
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir=TB_LOG_DIR,
             # histogram_freq=1, #this screwed us over... caused tensorboard callback to fail.. why??? DEBUG !!!!!!
             # batch_size=BATCH_SIZE, # and take this out... and boom.. histogam frequency works. sob
