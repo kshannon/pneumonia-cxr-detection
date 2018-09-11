@@ -3,7 +3,7 @@ import keras as K
 import numpy as np
 import os
 
-batch_size = 128
+batch_size = 256
 epochs = 12
 
 data_path = "../../rsna_data_numpy/"
@@ -80,7 +80,7 @@ def define_model(dropout=0.5):
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
-	model.compile(loss="binary_crossentropy",
+	model.compile(loss=dice_coef_loss, #"binary_crossentropy",
 				  optimizer="Adam",
 				  metrics=["accuracy", F1_score])
 
