@@ -3,7 +3,7 @@ import keras as K
 import numpy as np
 import os
 
-batch_size = 256
+batch_size = 128
 epochs = 12
 
 data_path = "../../rsna_data_numpy/"
