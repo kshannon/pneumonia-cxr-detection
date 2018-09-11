@@ -50,7 +50,7 @@ def define_model(dropout=0.5):
 				  padding="same",
 				  kernel_initializer="he_uniform")
 
-    fmaps = 16
+	fmaps = 16
 	conv1 = K.layers.Conv2D(name="conv1a", filters=fmaps, **params1x1)(inputs)
 	conv1b = K.layers.Conv2D(name="conv1b", filters=2*fmaps, **params)(conv1)
 	conv1b = K.layers.Conv2D(name="conv1c", filters=fmaps, **params1x1)(conv1b)
