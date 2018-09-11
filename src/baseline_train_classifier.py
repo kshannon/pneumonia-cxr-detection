@@ -37,15 +37,15 @@ def dice_coef_loss(y_true, y_pred, smooth=1.):
 
 	return loss
 
+params = dict(kernel_size=(3, 3), activation="relu",
+			  padding="same",
+			  kernel_initializer="he_uniform")
+
+params1x1 = dict(kernel_size=(1, 1), activation="relu",
+			  padding="same",
+			  kernel_initializer="he_uniform")
+
 def resnet_layer(inputs, fmaps, name):
-
-	params = dict(kernel_size=(3, 3), activation="relu",
-				  padding="same",
-				  kernel_initializer="he_uniform")
-
-	params1x1 = dict(kernel_size=(1, 1), activation="relu",
-				  padding="same",
-				  kernel_initializer="he_uniform")
 
 	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps, **params1x1)(inputs)
 	conv1b = K.layers.Conv2D(name=name+"b", filters=2*fmaps, **params)(conv1)
@@ -64,10 +64,6 @@ def define_model(dropout=0.5):
 	pool3 = resnet_layer(pool2, 64, "conv3")
 	pool4 = resnet_layer(pool3, 128, "conv4")
 
-	params1x1 = dict(kernel_size=(1, 1), activation="relu",
-				  padding="same",
-				  kernel_initializer="he_uniform")
-
 	conv = K.layers.Conv2D(name="NiN1", filters=256, **params1x1)(pool4)
 	conv = K.layers.Dropout(dropout)(conv)
 	conv = K.layers.Conv2D(name="NiN2", filters=128, **params1x1)(conv)
@@ -81,7 +77,7 @@ def define_model(dropout=0.5):
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
 	model.compile(loss=dice_coef_loss, #"binary_crossentropy",
-				  optimizer="Adam",
+				  optimizer=K.optimizers.Adam(lr=0.0005),
 				  metrics=["accuracy", F1_score])
 
 	return model
@@ -100,6 +96,7 @@ model = define_model()
 
 model.fit(imgs_train, labels_train,
 		  epochs=epochs,
+		  batch_size=batch_size,
 		  verbose=1,
 		  validation_data=(imgs_test, labels_test),
 		  callbacks=[tb_callback, model_callback, early_callback])
