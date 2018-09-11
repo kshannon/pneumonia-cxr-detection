@@ -40,35 +40,6 @@ def dice_coef_loss(y_true, y_pred, smooth=1.):
 	return loss
 
 
-def resnet_layer(inputs, fmaps, name):
-	"""
-	Residual layer block
-	"""
-
-	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps*2,
-							kernel_size=(1, 1), activation="linear",
-							padding="same",
-							kernel_initializer="he_uniform")(inputs)
-	conv1b = K.layers.BatchNormalization()(conv1)
-
-	conv1b = K.layers.Conv2D(name=name+"b", filters=fmaps,
-							 kernel_size=(3, 3), activation="linear",
-							 padding="same",
-							 kernel_initializer="he_uniform")(conv1b)
-	conv1b = K.layers.BatchNormalization()(conv1b)
-	conv1b = K.layers.Activation("relu")(conv1b)
-
-	conv1b = K.layers.Conv2D(name=name+"c", filters=fmaps*2,
-							 kernel_size=(1, 1), activation="linear",
-							 padding="same",
-							 kernel_initializer="he_uniform")(conv1b)
-
-	conv_add = K.layers.Add(name=name+"_add")([conv1, conv1b])
-	conv_add = K.layers.BatchNormalization()(conv_add)
-
-	pool = K.layers.MaxPooling2D(name=name+"_pool", pool_size=(2, 2))(conv_add)
-
-	return pool
 
 def simple_lenet():
 
@@ -116,6 +87,37 @@ def simple_lenet():
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
 	return model
+
+def resnet_layer(inputs, fmaps, name):
+	"""
+	Residual layer block
+	"""
+
+	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps*2,
+							kernel_size=(1, 1), activation="linear",
+							padding="same",
+							kernel_initializer="he_uniform")(inputs)
+	conv1b = K.layers.BatchNormalization()(conv1)
+
+	conv1b = K.layers.Conv2D(name=name+"b", filters=fmaps,
+							 kernel_size=(3, 3), activation="linear",
+							 padding="same",
+							 kernel_initializer="he_uniform")(conv1b)
+	conv1b = K.layers.BatchNormalization()(conv1b)
+	conv1b = K.layers.Activation("relu")(conv1b)
+
+	conv1b = K.layers.Conv2D(name=name+"c", filters=fmaps*2,
+							 kernel_size=(1, 1), activation="linear",
+							 padding="same",
+							 kernel_initializer="he_uniform")(conv1b)
+
+	conv_add = K.layers.Add(name=name+"_add")([conv1, conv1b])
+	conv_add = K.layers.BatchNormalization()(conv_add)
+
+	pool = K.layers.MaxPooling2D(name=name+"_pool", pool_size=(2, 2))(conv_add)
+
+	return pool
+
 
 def resnet():
 
@@ -183,7 +185,7 @@ model = simple_lenet()
 #model = resnet()
 
 model.compile(loss="binary_crossentropy",
-			  optimizer=K.optimizers.Adam(),
+			  optimizer=K.optimizers.Adam(lr=0.00001),
 			  metrics=["accuracy", F1_score])
 
 model.fit(imgs_train, labels_train,
