@@ -3,7 +3,7 @@ import keras as K
 import numpy as np
 import os
 
-batch_size = 32
+batch_size = 128
 epochs = 12
 
 data_path = "../../rsna_data_numpy/"
@@ -37,10 +37,7 @@ def dice_coef_loss(y_true, y_pred, smooth=1.):
 
 	return loss
 
-
-def define_model(dropout=0.5):
-
-	inputs = K.layers.Input(shape=(None,None,1), name="Images")
+def resnet_layer(inputs, fmaps, name):
 
 	params = dict(kernel_size=(3, 3), activation="relu",
 				  padding="same",
@@ -50,36 +47,30 @@ def define_model(dropout=0.5):
 				  padding="same",
 				  kernel_initializer="he_uniform")
 
-	fmaps = 16
-	conv1 = K.layers.Conv2D(name="conv1a", filters=fmaps, **params1x1)(inputs)
-	conv1b = K.layers.Conv2D(name="conv1b", filters=2*fmaps, **params)(conv1)
-	conv1b = K.layers.Conv2D(name="conv1c", filters=fmaps, **params1x1)(conv1b)
-	conv1a = K.layers.Add(name="add1")([conv1, conv1b])
-	pool1 = K.layers.MaxPooling2D(name="pool1", pool_size=(2, 2))(conv1a)
+	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps, **params1x1)(inputs)
+	conv1b = K.layers.Conv2D(name=name+"b", filters=2*fmaps, **params)(conv1)
+	conv1b = K.layers.Conv2D(name=name+"c", filters=fmaps, **params1x1)(conv1b)
+	conv_add = K.layers.Add(name=name+"_add")([conv1, conv1b])
+	pool = K.layers.MaxPooling2D(name=name+"_pool", pool_size=(2, 2))(conv_add)
 
-	fmaps = 32
-	conv2 = K.layers.Conv2D(name="conv2a", filters=fmaps, **params1x1)(pool1)
-	conv2b = K.layers.Conv2D(name="conv2b", filters=2*fmaps, **params)(conv2)
-	conv2b = K.layers.Conv2D(name="conv2c", filters=fmaps, **params1x1)(conv2b)
-	conv2a = K.layers.Add(name="add2")([conv2, conv2b])
-	pool2 = K.layers.MaxPooling2D(name="pool2", pool_size=(2, 2))(conv2a)
+	return pool
 
-	fmaps = 64
-	conv3 = K.layers.Conv2D(name="conv3a", filters=fmaps, **params1x1)(pool2)
-	conv3b = K.layers.Conv2D(name="conv3b", filters=2*fmaps, **params)(conv3)
-	conv3b = K.layers.Conv2D(name="conv3c", filters=fmaps, **params1x1)(conv3b)
-	conv3a = K.layers.Add(name="add3")([conv3, conv3b])
-	pool3 = K.layers.MaxPooling2D(name="pool3", pool_size=(2, 2))(conv3a)
+def define_model(dropout=0.5):
 
-	fmaps = 128
-	conv4 = K.layers.Conv2D(name="conv4a", filters=fmaps, **params1x1)(pool3)
-	conv4b = K.layers.Conv2D(name="conv4b", filters=2*fmaps, **params)(conv4)
-	conv4b = K.layers.Conv2D(name="conv4c", filters=fmaps, **params1x1)(conv4b)
-	conv4a = K.layers.Add(name="add4")([conv4, conv4b])
+	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
-	conv4b = K.layers.Conv2D(name="1x1", filters=1, **params1x1)(conv4a)
+	pool1 = resnet_layer(inputs, 16, "conv1")
+	pool2 = resnet_layer(pool1, 32, "conv2")
+	pool3 = resnet_layer(pool2, 64, "conv3")
+	pool4 = resnet_layer(pool3, 128, "conv4")
 
-	gap1 = K.layers.GlobalAveragePooling2D()(conv4b)
+	params1x1 = dict(kernel_size=(1, 1), activation="relu",
+				  padding="same",
+				  kernel_initializer="he_uniform")
+
+	conv = K.layers.Conv2D(name="1x1", filters=1, **params1x1)(pool4)
+
+	gap1 = K.layers.GlobalAveragePooling2D()(conv)
 
 	prediction = K.layers.Activation(activation="sigmoid")(gap1)
 
@@ -93,8 +84,12 @@ def define_model(dropout=0.5):
 
 
 tb_callback = K.callbacks.TensorBoard(log_dir="./logs")
-model_callback = K.callbacks.ModelCheckpoint("../models/baseline_classifier.h5", monitor="val_loss", verbose=1, save_best_only=True)
-early_callback = K.callbacks.EarlyStopping(monitor="val_loss", patience=3, verbose=1)
+model_callback = K.callbacks.ModelCheckpoint(
+				"../models/baseline_classifier.h5",
+				monitor="val_loss", verbose=1,
+				save_best_only=True)
+early_callback = K.callbacks.EarlyStopping(monitor="val_loss",
+				patience=3, verbose=1)
 
 
 model = define_model()
