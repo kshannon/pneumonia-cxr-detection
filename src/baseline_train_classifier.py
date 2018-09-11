@@ -23,47 +23,65 @@ def F1_score(y_true, y_pred, smooth=1.0):
    union = tf.reduce_sum(y_true + y_pred)
    numerator = tf.constant(2.) * intersection + smooth
    denominator = union + smooth
-   coef = numerator / denominator
-   return tf.reduce_mean(coef)
+   F1 = numerator / denominator
+   return tf.reduce_mean(F1)
+
+def dice_coef_loss(y_true, y_pred, smooth=1.):
+
+	y_true_f = K.backend.flatten(y_true)
+	y_pred_f = K.backend.flatten(y_pred)
+	intersection = K.backend.sum(y_true_f * y_pred_f)
+	loss = -K.backend.log(2. * intersection + smooth) + \
+		K.backend.log((K.backend.sum(y_true_f) +
+					   K.backend.sum(y_pred_f) + smooth))
+
+	return loss
+
 
 def define_model(dropout=0.5):
 
 	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
 	params = dict(kernel_size=(3, 3), activation="relu",
-				  padding="valid",
+				  padding="same",
 				  kernel_initializer="he_uniform")
 
-	conv1 = K.layers.Conv2D(name="conv1a", filters=32, **params)(inputs)
-	conv1 = K.layers.Conv2D(name="conv1b", filters=32, **params)(conv1)
-	pool1 = K.layers.MaxPooling2D(name="pool1", pool_size=(2, 2))(conv1)
+	params1x1 = dict(kernel_size=(1, 1), activation="relu",
+				  padding="same",
+				  kernel_initializer="he_uniform")
 
-	conv2 = K.layers.Conv2D(name="conv2a", filters=64, **params)(pool1)
-	conv2 = K.layers.Conv2D(name="conv2b", filters=64, **params)(conv2)
-	pool2 = K.layers.MaxPooling2D(name="pool2", pool_size=(2, 2))(conv2)
+    fmaps = 16
+	conv1 = K.layers.Conv2D(name="conv1a", filters=fmaps, **params1x1)(inputs)
+	conv1b = K.layers.Conv2D(name="conv1b", filters=2*fmaps, **params)(conv1)
+	conv1b = K.layers.Conv2D(name="conv1c", filters=fmaps, **params1x1)(conv1b)
+	conv1a = K.layers.Add(name="add1")([conv1, conv1b])
+	pool1 = K.layers.MaxPooling2D(name="pool1", pool_size=(2, 2))(conv1a)
 
-	conv3 = K.layers.Conv2D(name="conv3a", filters=128, **params)(pool2)
-	# Trying dropout layers earlier on, as indicated in the paper
-	conv3 = K.layers.Dropout(dropout)(conv3)
-	conv3 = K.layers.Conv2D(name="conv3b", filters=128, **params)(conv3)
+	fmaps = 32
+	conv2 = K.layers.Conv2D(name="conv2a", filters=fmaps, **params1x1)(pool1)
+	conv2b = K.layers.Conv2D(name="conv2b", filters=2*fmaps, **params)(conv2)
+	conv2b = K.layers.Conv2D(name="conv2c", filters=fmaps, **params1x1)(conv2b)
+	conv2a = K.layers.Add(name="add2")([conv2, conv2b])
+	pool2 = K.layers.MaxPooling2D(name="pool2", pool_size=(2, 2))(conv2a)
 
-	pool3 = K.layers.MaxPooling2D(name="pool3", pool_size=(2, 2))(conv3)
+	fmaps = 64
+	conv3 = K.layers.Conv2D(name="conv3a", filters=fmaps, **params1x1)(pool2)
+	conv3b = K.layers.Conv2D(name="conv3b", filters=2*fmaps, **params)(conv3)
+	conv3b = K.layers.Conv2D(name="conv3c", filters=fmaps, **params1x1)(conv3b)
+	conv3a = K.layers.Add(name="add3")([conv3, conv3b])
+	pool3 = K.layers.MaxPooling2D(name="pool3", pool_size=(2, 2))(conv3a)
 
-	conv4 = K.layers.Conv2D(name="conv4a", filters=256, **params)(pool3)
-	# Trying dropout layers earlier on, as indicated in the paper
-	conv4 = K.layers.Dropout(dropout)(conv4)
-	conv4 = K.layers.Conv2D(name="conv4b", filters=256, **params)(conv4)
+	fmaps = 128
+	conv4 = K.layers.Conv2D(name="conv4a", filters=fmaps, **params1x1)(pool3)
+	conv4b = K.layers.Conv2D(name="conv4b", filters=2*fmaps, **params)(conv4)
+	conv4b = K.layers.Conv2D(name="conv4c", filters=fmaps, **params1x1)(conv4b)
+	conv4a = K.layers.Add(name="add4")([conv4, conv4b])
 
-	pool4 = K.layers.MaxPooling2D(name="pool4", pool_size=(2, 2))(conv4)
+	conv4b = K.layers.Conv2D(name="1x1", filters=1, **params1x1)(conv4a)
 
-	conv5 = K.layers.Conv2D(name="conv5a", filters=512, **params)(pool4)
-	conv5 = K.layers.Conv2D(name="conv5b", filters=512, **params)(conv5)
+	gap1 = K.layers.GlobalAveragePooling2D()(conv4b)
 
-	gap1 = K.layers.GlobalAveragePooling2D()(conv5)
-	conv6 = K.layers.Dense(units=512,activation="relu")(gap1)
-	drop1 = K.layers.Dropout(dropout)(conv6)
-	conv7 = K.layers.Dense(units=128, activation="relu")(drop1)
-	prediction = K.layers.Dense(units=1, activation="sigmoid")(conv7)
+	prediction = K.layers.Activation(activation="sigmoid")(gap1)
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
