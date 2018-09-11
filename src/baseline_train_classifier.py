@@ -37,23 +37,33 @@ def dice_coef_loss(y_true, y_pred, smooth=1.):
 
 	return loss
 
-params = dict(kernel_size=(3, 3), activation="relu",
-			  padding="same",
-			  kernel_initializer="he_uniform")
-
-params1x1 = dict(kernel_size=(1, 1), activation="relu",
-			  padding="same",
-			  kernel_initializer="he_uniform")
 
 def resnet_layer(inputs, fmaps, name):
+	"""
+	Residual layer block
+	"""
 
-	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps, **params1x1)(inputs)
+	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps*2,
+							kernel_size=(1, 1), activation="linear",
+				  			padding="same",
+				  			kernel_initializer="he_uniform")(inputs)
 	conv1b = K.layers.BatchNormalization()(conv1)
-	conv1b = K.layers.Conv2D(name=name+"b", filters=2*fmaps, **params)(conv1b)
+
+	conv1b = K.layers.Conv2D(name=name+"b", filters=fmaps,
+							 kernel_size=(3, 3), activation="linear",
+						 	 padding="same",
+						 	 kernel_initializer="he_uniform")(conv1b)
 	conv1b = K.layers.BatchNormalization()(conv1b)
-	conv1b = K.layers.Conv2D(name=name+"c", filters=fmaps, **params1x1)(conv1b)
-	conv1b = K.layers.BatchNormalization()(conv1b)
+	conv1b = K.layers.Activation("relu")(conv1b)
+
+	conv1b = K.layers.Conv2D(name=name+"c", filters=fmaps*2,
+							 kernel_size=(1, 1), activation="linear",
+				  			 padding="same",
+				  			 kernel_initializer="he_uniform")(conv1b)
+
 	conv_add = K.layers.Add(name=name+"_add")([conv1, conv1b])
+	conv_add = K.layers.BatchNormalization()(conv_add)
+
 	pool = K.layers.MaxPooling2D(name=name+"_pool", pool_size=(2, 2))(conv_add)
 
 	return pool
@@ -67,11 +77,25 @@ def define_model(dropout=0.5):
 	pool3 = resnet_layer(pool2, 64, "conv3")
 	pool4 = resnet_layer(pool3, 128, "conv4")
 
-	conv = K.layers.Conv2D(name="NiN1", filters=256, **params1x1)(pool4)
+	conv = K.layers.Conv2D(name="NiN1", filters=256,
+						   kernel_size=(1, 1),
+						   activation="relu",
+						   padding="same",
+						   kernel_initializer="he_uniform")(pool4)
 	conv = K.layers.Dropout(dropout)(conv)
-	conv = K.layers.Conv2D(name="NiN2", filters=128, **params1x1)(conv)
+
+	conv = K.layers.Conv2D(name="NiN2", filters=128,
+						   kernel_size=(1, 1),
+						   activation="relu",
+						   padding="same",
+						   kernel_initializer="he_uniform")(conv)
 	conv = K.layers.Dropout(dropout)(conv)
-	conv = K.layers.Conv2D(name="1x1", filters=1, **params1x1)(conv)
+
+	conv = K.layers.Conv2D(name="1x1", filters=1,
+						   kernel_size=(1, 1),
+						   activation="linear",
+						   padding="same",
+						   kernel_initializer="he_uniform")(conv)
 
 	gap1 = K.layers.GlobalAveragePooling2D()(conv)
 
