@@ -48,8 +48,11 @@ params1x1 = dict(kernel_size=(1, 1), activation="relu",
 def resnet_layer(inputs, fmaps, name):
 
 	conv1 = K.layers.Conv2D(name=name+"a", filters=fmaps, **params1x1)(inputs)
-	conv1b = K.layers.Conv2D(name=name+"b", filters=2*fmaps, **params)(conv1)
+	conv1b = K.layers.BatchNormalization()(conv1)
+	conv1b = K.layers.Conv2D(name=name+"b", filters=2*fmaps, **params)(conv1b)
+	conv1b = K.layers.BatchNormalization()(conv1b)
 	conv1b = K.layers.Conv2D(name=name+"c", filters=fmaps, **params1x1)(conv1b)
+	conv1b = K.layers.BatchNormalization()(conv1b)
 	conv_add = K.layers.Add(name=name+"_add")([conv1, conv1b])
 	pool = K.layers.MaxPooling2D(name=name+"_pool", pool_size=(2, 2))(conv_add)
 
@@ -77,7 +80,7 @@ def define_model(dropout=0.5):
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
 	model.compile(loss=dice_coef_loss, #"binary_crossentropy",
-				  optimizer=K.optimizers.Adam(lr=0.0005),
+				  optimizer=K.optimizers.Adam(lr=0.05),
 				  metrics=["accuracy", F1_score])
 
 	return model
