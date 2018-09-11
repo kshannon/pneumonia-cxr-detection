@@ -131,20 +131,19 @@ def img_augmentation(image, label):
     image = tf.clip_by_value(image, 0.0, 1.0) #ensure [0.0,1.0] img constraint
     return image, label
 
-def format_labels(labels):
+def format_labels(csv_labels):
     """ Takes csv labels and casts them into tensorflow objects in separate indexed lists"""
-    class_labels,bbox_labels = [],[]
-    for label in tqdm(labels):
-        bbox = label[0:-1]
-        classification = label[-1]
-        class_labels.append(tf.cast(classification, tf.int8))
-        bbox_labels.append(tf.cast(bbox, tf.float32))
-        # print(type(class_labels[0]))
-        # print(class_labels[0])
-        # print(type(bbox_labels[0]))
-        # print(bbox_labels[0])
-        # sys.exit()
-    return class_labels, bbox_labels
+    labels,bboxes = [],[]
+    for label in tqdm(csv_labels):
+        # bbox = [float(x) for x in label[0:-1]]
+        bbox = [tf.cast(x, tf.float32) for x in label[0:-1]]
+        bboxes.append(bbox)
+        class_label = float(label[-1])
+        labels.append(class_label)
+        # class_labels.append(tf.cast(classification, tf.int8))
+        # bbox_labels.append(tf.cast(bbox, tf.float32))
+ 
+    return labels, bboxes
 
 def build_dataset(data, labels):
     """todo"""
