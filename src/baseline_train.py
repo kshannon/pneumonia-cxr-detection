@@ -142,7 +142,7 @@ def format_labels(csv_labels):
         labels.append(class_label)
         # class_labels.append(tf.cast(classification, tf.int8))
         # bbox_labels.append(tf.cast(bbox, tf.float32))
- 
+
     return labels, bboxes
 
 def build_dataset(data, labels):
@@ -166,14 +166,27 @@ def build_dataset(data, labels):
     dataset = dataset.prefetch(PREFETCH_SIZE) #single training step consumes n elements
     return dataset
 
+def resize_normalize(image):
+	""" Resize images on the graph """
+	resized = tf.image.resize_images(image, (IMG_RESIZE_X, IMG_RESIZE_Y))
+    #TODO tf.image.per-image)standardezation()
+	return resized
+
 ########################################
 ######     Model Definitions      ######
 ########################################
 def lenet(img_x,img_y,channels):
     """ Modern take on the 1998 classic by LeCun! """
-    input_img = keras.layers.Input(shape=(img_x,img_y,channels))
+    #using lambda def()
+    input_img = keras.layers.Input(shape=(None,None,1), name='Images')
+    # input_img = keras.layers.Input(shape=(img_x,img_y,channels))
 
-    conv1 = keras.layers.Conv2D(filters=20, kernel_size=(5,5))(input_img)
+    input_resize = K.layers.Lambda(resize_normalize,
+    						 input_shape=(None, None, 1),
+    						 output_shape=(resize_height, resize_width,
+    						 1))(input_img)
+
+    conv1 = keras.layers.Conv2D(filters=20, kernel_size=(5,5))(input_resize)
     conv1 = keras.layers.Activation('relu')(conv1)
     pool1 = keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2))(conv1)
     dropout1 = keras.layers.Dropout(0.25)(pool1)
