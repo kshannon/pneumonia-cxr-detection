@@ -34,6 +34,7 @@ class ConfusionMatrix(Callback):
 
 	def on_epoch_end(self, epoch, logs=None):
 
+		print("Calculating confusion matrix...")
 		predicted = self.model.predict(self.x, verbose=1)
 		predicted = np.argmax(predicted, axis=1)
 		ground = np.argmax(self.y_true, axis=1)
