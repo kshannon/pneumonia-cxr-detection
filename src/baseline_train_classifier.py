@@ -69,7 +69,7 @@ def simple_lenet():
 						   padding="valid",
 						   kernel_initializer="he_uniform")(inputR)
 
-	conv = K.layers.BatchNorm()(conv)
+	conv = K.layers.BatchNormalization()(conv)
 
 	conv = K.layers.Conv2D(filters=64,
 						   kernel_size=(3, 3),
@@ -77,7 +77,7 @@ def simple_lenet():
 						   padding="valid",
 						   kernel_initializer="he_uniform")(conv)
 
-	conv = K.layers.BatchNorm()(conv)
+	conv = K.layers.BatchNormalization()(conv)
 
 	pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
 	dropout = K.layers.Dropout(0.25)(pool)
