@@ -27,13 +27,13 @@ msk = np.random.rand(df.shape[0])
 len_train = len(np.where(msk < 0.85)[0])
 len_test = len(np.where(msk >= 0.85)[0])
 
-imgs_train = np.zeros([len_train, array.shape[0], array.shape[1],1])
-labels_train = np.zeros(len_train)
-bboxes_train = np.zeros([len_train, 4])
+imgs_train = np.zeros([len_train, array.shape[0], array.shape[1],1], dtype="float32")
+labels_train = np.zeros(len_train, dtype="float32")
+bboxes_train = np.zeros([len_train, 4], dtype="float32")
 
-imgs_test = np.zeros([len_test, array.shape[0], array.shape[1],1])
-labels_test = np.zeros(len_test)
-bboxes_test = np.zeros([len_test, 4])
+imgs_test = np.zeros([len_test, array.shape[0], array.shape[1],1], dtype="float32")
+labels_test = np.zeros(len_test, dtype="float32")
+bboxes_test = np.zeros([len_test, 4], dtype="float32")
 
 print("Processing DICOM files and saving to Numpy format")
 

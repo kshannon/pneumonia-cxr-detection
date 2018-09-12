@@ -173,7 +173,7 @@ model = simple_lenet()
 #model = resnet()
 
 model.compile(loss="binary_crossentropy",
-			  optimizer=K.optimizers.Adam(lr=0.00001),
+			  optimizer=K.optimizers.Adagrad(),
 			  metrics=["accuracy", F1_score])
 
 model.fit(imgs_train, labels_train,
