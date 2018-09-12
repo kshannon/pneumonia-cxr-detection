@@ -40,6 +40,19 @@ def dice_coef_loss(y_true, y_pred, smooth=1.):
 	return loss
 
 
+def sensitivity(y_true, y_pred, smooth=1.):
+
+	intersection = tf.reduce_sum(y_true * y_pred)
+	coef = (intersection + smooth) / (tf.reduce_sum(y_true) + smooth)
+	return coef
+
+
+def specificity(y_true, y_pred, smooth=1.):
+
+	intersection = tf.reduce_sum(y_true * y_pred)
+	coef = (intersection + smooth) / (tf.reduce_sum(y_pred) + smooth)
+	return coef
+
 
 def simple_lenet():
 
@@ -56,11 +69,15 @@ def simple_lenet():
 						   padding="valid",
 						   kernel_initializer="he_uniform")(inputR)
 
+	conv = K.layers.BatchNorm()(conv)
+
 	conv = K.layers.Conv2D(filters=64,
 						   kernel_size=(3, 3),
 						   activation="relu",
 						   padding="valid",
 						   kernel_initializer="he_uniform")(conv)
+
+	conv = K.layers.BatchNorm()(conv)
 
 	pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
 	dropout = K.layers.Dropout(0.25)(pool)
@@ -173,8 +190,8 @@ model = simple_lenet()
 #model = resnet()
 
 model.compile(loss="binary_crossentropy",
-			  optimizer=K.optimizers.Adagrad(),
-			  metrics=["accuracy", F1_score])
+			  optimizer="adam",
+			  metrics=["accuracy", F1_score, sensitivity, specificity])
 
 model.fit(imgs_train, labels_train,
 		  epochs=epochs,
