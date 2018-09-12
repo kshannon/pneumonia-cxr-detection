@@ -20,6 +20,30 @@ labels_train = np.load(os.path.join(data_path, "labels_train.npy"),
 labels_test = np.load(os.path.join(data_path, "labels_test.npy"),
 						 mmap_mode="r", allow_pickle=False)
 
+from keras.callbacks import Callback
+import sklearn
+
+class ConfusionMatrix(Callback):
+
+	def __init__(self, x, y_true, num_classes):
+		super().__init__()
+
+		self.x = x
+		self.y_true = y_true
+		self.num_classes = num_classes
+
+	def on_epoch_end(self, epoch, logs=None):
+
+		predicted = self.model.predict(self.x, verbose=1)
+		predicted = np.argmax(predicted, axis=1)
+		ground = np.argmax(self.y_true, axis=1)
+		cm = sklearn.metrics.confusion_matrix(ground, predicted, labels=None, sample_weight=None)
+		template = "{0:30}|{1:10}|{2:30}|{3:15}"
+		print (template.format("", "Normal", "No Lung Opacity / Not Normal", "Lung Opacity")) # header
+		print (template.format("Normal", cm[0,0], cm[1,0], cm[2,0]))
+		print (template.format("No Lung Opacity / Not Normal", cm[0,1], cm[1,1], cm[2,1]))
+		print (template.format("Lung Opacity", cm[0,2], cm[1,2], cm[2,2]))
+
 
 def F1_score(y_true, y_pred, smooth=1.0):
    intersection = tf.reduce_sum(y_true * y_pred)
@@ -188,6 +212,9 @@ model_callback = K.callbacks.ModelCheckpoint(
 early_callback = K.callbacks.EarlyStopping(monitor="val_loss",
 				patience=3, verbose=1)
 
+confusion_callback = ConfusionMatrix(imgs_test, labels_test, 3)
+
+callbacks = [tb_callback, model_callback, early_callback, confusion_callback]
 
 model = simple_lenet()
 #model = resnet()
@@ -205,4 +232,4 @@ model.fit(imgs_train, labels_train,
 		  verbose=1,
 		  class_weight=class_weights,
 		  validation_data=(imgs_test, labels_test),
-		  callbacks=[tb_callback, model_callback, early_callback])
+		  callbacks=callbacks)
