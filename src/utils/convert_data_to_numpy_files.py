@@ -50,7 +50,7 @@ with tqdm(total=df.shape[0]) as pbar:
 
         array = sitk.GetArrayFromImage(itkimage)
         array = np.fliplr(np.rot90(np.swapaxes(array,0,2),-1))
-        array = (array - np.mean(array)) / np.std(array)
+        #array = (array - np.mean(array)) / np.std(array)
         #plt.imshow(array[:,:,0], cmap="bone")
         #plt.show()
 

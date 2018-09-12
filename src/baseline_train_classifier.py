@@ -5,8 +5,8 @@ import os
 
 batch_size = 1024
 epochs = 12
-resize_height = 128  # Resize images to this height
-resize_width = 128   # Resize images to this width
+resize_height = 256  # Resize images to this height
+resize_width = 256   # Resize images to this width
 
 data_path = "../../rsna_data_numpy/"
 
@@ -154,9 +154,10 @@ def resize_normalize(image):
 	"""
 	Resize images on the graph
 	"""
+
 	resized = tf.image.resize_images(image, (resize_height, resize_width))
 
-	return resized
+	return tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), resized)
 
 
 tb_callback = K.callbacks.TensorBoard(log_dir="./logs")
