@@ -20,6 +20,7 @@ labels_train = np.load(os.path.join(data_path, "labels_train.npy"),
 labels_test = np.load(os.path.join(data_path, "labels_test.npy"),
 						 mmap_mode="r", allow_pickle=False)
 
+
 def F1_score(y_true, y_pred, smooth=1.0):
    intersection = tf.reduce_sum(y_true * y_pred)
    union = tf.reduce_sum(y_true + y_pred)
@@ -69,7 +70,7 @@ def simple_lenet():
 						   padding="valid",
 						   kernel_initializer="he_uniform")(inputR)
 
-	conv = K.layers.BatchNormalization()(conv)
+	#conv = K.layers.BatchNormalization()(conv)
 
 	conv = K.layers.Conv2D(filters=64,
 						   kernel_size=(3, 3),
@@ -77,16 +78,18 @@ def simple_lenet():
 						   padding="valid",
 						   kernel_initializer="he_uniform")(conv)
 
-	conv = K.layers.BatchNormalization()(conv)
+	#conv = K.layers.BatchNormalization()(conv)
 
 	pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
-	dropout = K.layers.Dropout(0.25)(pool)
 
-	flat = K.layers.Flatten()(dropout)
+	flat = K.layers.Flatten()(pool)
 
 	dense1 = K.layers.Dense(256, activation="relu")(flat)
 	dropout = K.layers.Dropout(0.25)(dense1)
-	prediction = K.layers.Dense(1, activation="sigmoid")(dropout)
+	dense2 = K.layers.Dense(128, activation="relu")(dense1)
+	dropout = K.layers.Dropout(0.25)(dense2)
+
+	prediction = K.layers.Dense(3, activation="softmax")(dropout)
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
@@ -153,7 +156,7 @@ def resnet():
 						   kernel_initializer="he_uniform")(conv)
 	conv = K.layers.Dropout(dropout)(conv)
 
-	conv = K.layers.Conv2D(name="1x1", filters=1,
+	conv = K.layers.Conv2D(name="1x1", filters=3,
 						   kernel_size=(1, 1),
 						   activation="linear",
 						   padding="same",
@@ -161,7 +164,7 @@ def resnet():
 
 	gap1 = K.layers.GlobalAveragePooling2D()(conv)
 
-	prediction = K.layers.Activation(activation="sigmoid")(gap1)
+	prediction = K.layers.Activation(activation="softmax")(gap1)
 
 	model = K.models.Model(inputs=[inputs], outputs=[prediction])
 
@@ -189,13 +192,17 @@ early_callback = K.callbacks.EarlyStopping(monitor="val_loss",
 model = simple_lenet()
 #model = resnet()
 
-model.compile(loss="binary_crossentropy",
-			  optimizer="adam",
-			  metrics=["accuracy", F1_score, sensitivity, specificity])
+model.compile(loss="categorical_crossentropy",
+			  optimizer=K.optimizers.Adam(lr=0.00001),
+			  metrics=["accuracy"])
+
+class_weights = {0:.2,1:.4,2:.4}
+print("Class weights = {}".format(class_weights))
 
 model.fit(imgs_train, labels_train,
 		  epochs=epochs,
 		  batch_size=batch_size,
 		  verbose=1,
+		  class_weight=class_weights,
 		  validation_data=(imgs_test, labels_test),
 		  callbacks=[tb_callback, model_callback, early_callback])
