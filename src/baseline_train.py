@@ -131,7 +131,7 @@ def img_augmentation(image, label):
     image = tf.clip_by_value(image, 0.0, 1.0) #ensure [0.0,1.0] img constraint
     return image, label
 
-def format_labels(csv_labels):
+def transform_labels(csv_labels):
     """ Takes csv labels and casts them into tensorflow objects in separate indexed lists"""
     labels,bboxes = [],[]
     for label in tqdm(csv_labels):
@@ -139,23 +139,14 @@ def format_labels(csv_labels):
         bbox = [tf.cast(x, tf.float32) for x in label[0:-1]]
         bboxes.append(bbox)
         class_label = float(label[-1])
-        labels.append(class_label)
-        # class_labels.append(tf.cast(classification, tf.int8))
-        # bbox_labels.append(tf.cast(bbox, tf.float32))
-
+        labels.append(tf.cast(class_label, tf.int8))
+ 
     return labels, bboxes
 
 def build_dataset(data, labels):
     """todo"""
     # class_labels = tf.one_hot(tf.cast(labels[4], tf.uint8), 1) #cast labels to dim 2 tf obj
-    labels = format_labels(labels)
-    # print(type(labels[0][0]))
-    # print(labels[0][0])
-    # print(type(labels[1][0]))
-    # print(labels[1][0])
-    # # break
-    # sys.exit()
-
+    labels = transform_labels(labels)
     dataset = tf.data.Dataset.from_tensor_slices((data, labels))
     dataset = dataset.shuffle(len(data))
     dataset = dataset.repeat()
@@ -204,6 +195,7 @@ def lenet(img_x,img_y,channels):
 
     model = keras.models.Model(inputs=[input_img], outputs=outputs)
     return model
+
 
 
 def dense_net169(img_x,img_y,channels,label_shape,classes=2):
