@@ -35,18 +35,18 @@ class ConfusionMatrix(Callback):
 	def on_epoch_end(self, epoch, logs=None):
 
 		print("Calculating confusion matrix...")
-		predicted = self.model.predict(self.x, verbose=1)
+		predicted = self.model.predict(self.x, verbose=1,batch_size=batch_size)
 		predicted = np.argmax(predicted, axis=1)
 		ground = np.argmax(self.y_true, axis=1)
 		cm = sklearn.metrics.confusion_matrix(ground, predicted, labels=None, sample_weight=None)
 		template = "{0:10}|{1:30}|{2:10}|{3:30}|{4:15}|{5:15}"
-		print (template.format("","", "", "Predicted", ""))
+		print (template.format("","", "", "Predicted", "", ""))
 		print (template.format("","", "Normal", "No Lung Opacity / Not Normal", "Lung Opacity", "Total true"))
 		print (template.format("", "="*28, "="*9, "="*28, "="*12, "="*12))
 		print (template.format("", "Normal", cm[0,0], cm[0,1], cm[0,2], np.sum(cm[0,:])))
 		print (template.format("True", "No Lung Opacity / Not Normal", cm[1,0], cm[1,1], cm[1,2], np.sum(cm[1,:])))
 		print (template.format("", "Lung Opacity", cm[2,0], cm[2,1], cm[2,2], np.sum(cm[2,:])))
-		print (template.format("","Total predicted", np.sum(cm[:,0]), np.sum(cm[:,1]), np.sum(cm[:,2])))
+		print (template.format("","Total predicted", np.sum(cm[:,0]), np.sum(cm[:,1]), np.sum(cm[:,2]),""))
 
 
 def F1_score(y_true, y_pred, smooth=1.0):
