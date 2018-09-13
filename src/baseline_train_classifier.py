@@ -3,10 +3,10 @@ import keras as K
 import numpy as np
 import os
 
-batch_size = 1024
+batch_size = 512
 epochs = 12
-resize_height = 256  # Resize images to this height
-resize_width = 256   # Resize images to this width
+resize_height = 512  # Resize images to this height
+resize_width = 512   # Resize images to this width
 
 data_path = "../../rsna_data_numpy/"
 
@@ -40,10 +40,12 @@ class ConfusionMatrix(Callback):
 		ground = np.argmax(self.y_true, axis=1)
 		cm = sklearn.metrics.confusion_matrix(ground, predicted, labels=None, sample_weight=None)
 		template = "{0:30}|{1:10}|{2:30}|{3:15}"
-		print (template.format("", "Normal", "No Lung Opacity / Not Normal", "Lung Opacity")) # header
-		print (template.format("Normal", cm[0,0], cm[1,0], cm[2,0]))
-		print (template.format("No Lung Opacity / Not Normal", cm[0,1], cm[1,1], cm[2,1]))
-		print (template.format("Lung Opacity", cm[0,2], cm[1,2], cm[2,2]))
+		print (template.format("True \/    Predicted ->", "Normal", "No Lung Opacity / Not Normal", "Lung Opacity")) # header
+		print (template.format("="*28, "="*9, "="*28, "="*12))
+		print (template.format("Normal", cm[0,0], cm[0,1], cm[0,2]))
+		print (template.format("No Lung Opacity / Not Normal", cm[1,0], cm[1,1], cm[1,2]))
+		print (template.format("Lung Opacity", cm[2,0], cm[2,1], cm[2,2]))
+		print (template.format("Total true", np.sum(cm[:,0]), np.sum(cm[:,1]), np.sum(cm[:,2])))
 
 
 def F1_score(y_true, y_pred, smooth=1.0):
@@ -221,10 +223,10 @@ model = simple_lenet()
 #model = resnet()
 
 model.compile(loss="categorical_crossentropy",
-			  optimizer=K.optimizers.Adam(lr=0.00001),
+			  optimizer=K.optimizers.Adam(lr=0.000001),
 			  metrics=["accuracy"])
 
-class_weights = {0:.2,1:.4,2:.4}
+class_weights = {0:0.4,1:0.2,2:0.4}
 print("Class weights = {}".format(class_weights))
 
 model.fit(imgs_train, labels_train,
