@@ -83,7 +83,7 @@ def specificity(y_true, y_pred, smooth=1.):
 	return coef
 
 
-def simple_lenet():
+def simple_lenet(dropout=0.5):
 
 	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
@@ -113,9 +113,9 @@ def simple_lenet():
 	flat = K.layers.Flatten()(pool)
 
 	dense1 = K.layers.Dense(256, activation="relu")(flat)
-	dropout = K.layers.Dropout(0.25)(dense1)
+	dropout = K.layers.Dropout(dropout)(dense1)
 	dense2 = K.layers.Dense(128, activation="relu")(dense1)
-	dropout = K.layers.Dropout(0.25)(dense2)
+	dropout = K.layers.Dropout(dropout)(dense2)
 
 	prediction = K.layers.Dense(3, activation="softmax")(dropout)
 
@@ -154,7 +154,7 @@ def resnet_layer(inputs, fmaps, name):
 	return pool
 
 
-def resnet():
+def resnet(dropout=0.5):
 
 	inputs = K.layers.Input(shape=(None,None,1), name="Images")
 
@@ -165,10 +165,10 @@ def resnet():
 
 	pool1 = resnet_layer(inputR, 16, "conv1")
 	pool2 = resnet_layer(pool1, 32, "conv2")
-	#pool3 = resnet_layer(pool2, 64, "conv3")
-	#pool4 = resnet_layer(pool3, 128, "conv4")
+	pool3 = resnet_layer(pool2, 64, "conv3")
+	pool4 = resnet_layer(pool3, 128, "conv4")
 
-	pool = pool2
+	pool = pool4
 
 	conv = K.layers.Conv2D(name="NiN1", filters=256,
 						   kernel_size=(1, 1),
@@ -220,14 +220,14 @@ confusion_callback = ConfusionMatrix(imgs_test, labels_test, 3)
 
 callbacks = [tb_callback, model_callback, early_callback, confusion_callback]
 
-model = simple_lenet()
-#model = resnet()
+#model = simple_lenet()
+model = resnet()
 
 model.compile(loss="categorical_crossentropy",
 			  optimizer=K.optimizers.Adam(lr=0.000001),
 			  metrics=["accuracy"])
 
-class_weights = {0:0.4,1:0.2,2:0.4}
+class_weights = {0:0.33,1:0.33,2:0.33}
 print("Class weights = {}".format(class_weights))
 
 model.fit(imgs_train, labels_train,
