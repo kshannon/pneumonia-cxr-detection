@@ -33,14 +33,14 @@ BOX_1 = '200 200 200 600'
 BOX_2 = '600 200 200 600'
 CONFIDENCE = '0.5'
 CHANNELS = 3
-IMG_RESIZE_X = 320
-IMG_RESIZE_Y = 320
+IMG_RESIZE_X = 512
+IMG_RESIZE_Y = 512
 PREDICTIONS = []
 
-
+print('hiiiiiii')
 #load model
-model = models.load_model('../models/Baseline_model.h5')
-
+model = models.load_model('../models/baseline_classifier_good_for_pneumonia.h5')
+ptint('byeeeeee')
 
 def prepare_img(filename):
     image_string = tf.read_file(filename)
@@ -54,6 +54,10 @@ def inference(img_path, model, data_path=None):
     """Send an img and model, preprocess the img to training standards, then return a pred"""
     img = prepare_img(img_path)
     pred_prob = model.predict(img, batch_size=None, steps=1, verbose=0)
+    print(type(pred_prob))
+    print(pred_prob)
+    print(pred_prob[0])
+    sys.exit()
     return pred_prob[0][0]
 
 def main():

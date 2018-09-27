@@ -63,8 +63,9 @@ PNG_DIR = DATA_PATH + 'stage_1_train_images/' #using pngs currently over dicom (
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 PREFETCH_SIZE = 1
-IMG_RESIZE_X = 128
-IMG_RESIZE_Y = 128
+IMG_RESIZE_X = 64
+IMG_RESIZE_Y = 64
+IMG_RESIZE_FACTOR = 1024.0/IMG_RESIZE_X #resize bounding boxes
 CHANNELS = 3
 LEARNING_RATE = 0.0001
 # DECAY_FACTOR = 10 #learning rate decayed when valid. loss plateaus after an epoch
@@ -120,7 +121,7 @@ def preprocess_img(filename, label):
     image_string = tf.read_file(filename)
     image = tf.image.decode_png(image_string, channels=CHANNELS) # Don't use tf.image.decode_image
     image = tf.image.convert_image_dtype(image, tf.float32) #convert to float values in [0, 1]
-    image = tf.image.resize_images(image, [IMG_RESIZE_X, IMG_RESIZE_Y])
+    # image = tf.image.resize_images(image, [IMG_RESIZE_X, IMG_RESIZE_Y])
     return image, label
 
 def img_augmentation(image, label):
@@ -136,7 +137,7 @@ def transform_labels(csv_labels):
     labels,bboxes = [],[]
     for label in tqdm(csv_labels):
         # bbox = [float(x) for x in label[0:-1]]
-        bbox = [tf.cast(x, tf.float32) for x in label[0:-1]]
+        bbox = [tf.cast(x, tf.float32)/IMG_RESIZE_FACTOR for x in label[0:-1]]
         bboxes.append(bbox)
         class_label = float(label[-1])
         labels.append(tf.cast(class_label, tf.int8))
@@ -174,7 +175,7 @@ def lenet(img_x,img_y,channels):
 
     input_resize = K.layers.Lambda(resize_normalize,
     						 input_shape=(None, None, 1),
-    						 output_shape=(resize_height, resize_width,
+    						 output_shape=(IMG_RESIZE_X, IMG_RESIZE_Y,
     						 1))(input_img)
 
     conv1 = keras.layers.Conv2D(filters=20, kernel_size=(5,5))(input_resize)
@@ -214,7 +215,7 @@ def dense_net169(img_x,img_y,channels,label_shape,classes=2):
     return model
 
 
-#####################################
+########################################
 ######        TRAIN LOOP          ######
 ########################################
 def main():
@@ -233,10 +234,18 @@ def main():
             beta1=ADAM_B1,
             beta2=ADAM_B2)
 
+    # https://www.tensorflow.org/api_docs/python/tf/keras/optimizers/Adam
     optimizer_keras = tf.keras.optimizers.Adam(lr=LEARNING_RATE,
             beta_1=ADAM_B1,
             beta_2=ADAM_B2,
             decay=0.10)
+
+    # https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/EarlyStopping
+    early_stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
+			patience=3, verbose=1)
+    
+    # https://www.tensorflow.org/api_docs/python/tf/confusion_matrix
+    confusion_callback = tf.confusion_matrix(imgs_test, labels_test, 2)
 
     # https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/ModelCheckpoint
     checkpointer = tf.keras.callbacks.ModelCheckpoint(filepath=CHECKPOINT_FILENAME,
@@ -265,7 +274,7 @@ def main():
             verbose=1,
             validation_data=valid_dataset,
             validation_steps= (len(valid_labels)//BATCH_SIZE),  #3197 validation number
-            callbacks=[checkpointer,tensorboard])  #https://towardsdatascience.com/learning-rate-schedules-and-adaptive-learning-rate-methods-for-deep-learning-2c8f433990d1
+            callbacks=[checkpointer,tensorboard,early_stop])  #https://towardsdatascience.com/learning-rate-schedules-and-adaptive-learning-rate-methods-for-deep-learning-2c8f433990d1
 
 
     # Save entire model to a HDF5 file
