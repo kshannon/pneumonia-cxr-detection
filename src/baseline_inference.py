@@ -41,7 +41,7 @@ PREDICTIONS = []
 
 
 #load model
-model = models.load_model('../models/baseline_classifier_good_for_pneumonia.h5')
+model = models.load_model('../models/baseline_classifier.h5')
 
 def gen_rand_box():
     def random_num(num):
