@@ -5,8 +5,8 @@ import os
 
 batch_size = 512
 epochs = 100
-resize_height = 32 # 512  # Resize images to this height
-resize_width = 32 #512   # Resize images to this width
+resize_height = 512  # Resize images to this height
+resize_width = 512   # Resize images to this width
 
 data_path = "../../rsna_data_numpy/"
 
