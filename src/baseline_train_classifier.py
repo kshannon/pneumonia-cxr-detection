@@ -3,7 +3,7 @@ import keras as K
 import numpy as np
 import os
 
-batch_size = 512
+batch_size = 64
 epochs = 100
 resize_height = 512  # Resize images to this height
 resize_width = 512   # Resize images to this width
@@ -139,6 +139,24 @@ def simple_lenet(dropout_rate=0.5):
 
     pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
 
+    conv = K.layers.Conv2D(filters=128,
+                           kernel_size=(3, 3),
+                           activation="relu",
+                           padding="valid",
+                           kernel_initializer="he_uniform")(pool)
+
+    #conv = K.layers.BatchNormalization()(conv)
+
+    conv = K.layers.Conv2D(filters=256,
+                           kernel_size=(3, 3),
+                           activation="relu",
+                           padding="valid",
+                           kernel_initializer="he_uniform")(conv)
+
+    #conv = K.layers.BatchNormalization()(conv)
+
+    pool = K.layers.MaxPooling2D(pool_size=(2, 2))(conv)
+
     flat = K.layers.Flatten()(pool)
 
     dense1 = K.layers.Dense(256, activation="relu")(flat)
@@ -227,12 +245,17 @@ def resize_normalize(image, resize_height, resize_width):
     """
     Resize images on the graph
     """
-    from tensorflow.image import resize_images
+#    from tensorflow.image import resize_images
 
-    resized = resize_images(image, (resize_height, resize_width))
+#    resized = resize_images(image, (resize_height, resize_width))
 
-    return resized
+#    return resized
 
+    import tensorflow as tf
+
+    resized = tf.image.resize_images(image, (resize_height, resize_width))
+
+    return tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), resized)
 
 tb_callback = K.callbacks.TensorBoard(log_dir="./logs")
 model_callback = K.callbacks.ModelCheckpoint(
@@ -240,7 +263,7 @@ model_callback = K.callbacks.ModelCheckpoint(
     monitor="val_loss", verbose=1,
     save_best_only=True)
 early_callback = K.callbacks.EarlyStopping(monitor="val_loss",
-                                           patience=3, verbose=1)
+                                           patience=5, verbose=1)
 
 confusion_callback = ConfusionMatrix(imgs_test, labels_test, 3)
 
@@ -250,18 +273,18 @@ model = simple_lenet()
 #model = resnet()
 
 model.compile(loss="categorical_crossentropy",
-              optimizer=K.optimizers.Adam(lr=0.000001),
+              optimizer=K.optimizers.Adam(lr=0.00001),
               metrics=["accuracy"])
 
 model.summary()
 
-class_weights = {0: 0.1, 1: 0.1, 2: 0.8}
+class_weights = {0: 0.25, 1: 0.25, 2: 0.5}
 print("Class weights = {}".format(class_weights))
 
 model.fit(imgs_train, labels_train,
           epochs=epochs,
           batch_size=batch_size,
           verbose=1,
-          #class_weight=class_weights,
+          class_weight=class_weights,
           validation_data=(imgs_test, labels_test),
           callbacks=callbacks)
