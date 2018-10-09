@@ -47,7 +47,7 @@ class ConfusionMatrix(Callback):
             (max([len(str(row[i])) for row in table]) + 3)
             for i in range(len(table[0]))
         ]
-        row_format = "".join(["{:>" + str(longest_col) +
+        row_format = "".join(["{:^" + str(longest_col) +
                      "}" for longest_col in longest_cols])
 
         for row in table:
@@ -298,8 +298,10 @@ def resize_normalize(image, resize_height, resize_width):
 
     import tensorflow as tf
 
+    # Resize the images
     resized = tf.image.resize_images(image, (resize_height, resize_width))
 
+    # Perform normalization on each resized image in the batch
     return tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), resized)
 
 tb_callback = K.callbacks.TensorBoard(log_dir="./logs")
