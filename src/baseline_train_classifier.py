@@ -3,7 +3,7 @@ import keras as K
 import numpy as np
 import os
 
-batch_size = 64
+batch_size = 256
 epochs = 100
 resize_height = 512  # Resize images to this height
 resize_width = 512   # Resize images to this width
@@ -26,12 +26,32 @@ import sklearn
 
 class ConfusionMatrix(Callback):
 
-    def __init__(self, x, y_true, num_classes):
+    """
+    Prints a confusion matrix
+    User must pass in an array of class names
+    """
+
+    def __init__(self, x, y_true, class_names):
         super().__init__()
 
         self.x = x
         self.y_true = y_true
-        self.num_classes = num_classes
+        self.num_classes = len(class_names)
+        self.class_names = class_names
+
+    def print_table(self, table):
+        """
+        Pretty print the table
+        """
+        longest_cols = [
+            (max([len(str(row[i])) for row in table]) + 3)
+            for i in range(len(table[0]))
+        ]
+        row_format = "".join(["{:>" + str(longest_col) +
+                     "}" for longest_col in longest_cols])
+
+        for row in table:
+            print(row_format.format(*row))
 
     def on_epoch_end(self, epoch, logs=None):
 
@@ -42,19 +62,44 @@ class ConfusionMatrix(Callback):
         ground = np.argmax(self.y_true, axis=1)
         cm = sklearn.metrics.confusion_matrix(
             ground, predicted, labels=None, sample_weight=None)
-        template = "{0:10}|{1:30}|{2:10}|{3:30}|{4:15}|{5:15}"
-        print(template.format("", "", "", "Predicted", "", ""))
-        print(template.format("", "", "Normal",
-                              "No Lung Opacity / Not Normal", "Lung Opacity", "Total true"))
-        print(template.format("", "="*28, "="*9, "="*28, "="*12, "="*12))
-        print(template.format("", "Normal",
-                              cm[0, 0], cm[0, 1], cm[0, 2], np.sum(cm[0, :])))
-        print(template.format("True", "No Lung Opacity / Not Normal",
-                              cm[1, 0], cm[1, 1], cm[1, 2], np.sum(cm[1, :])))
-        print(template.format("", "Lung Opacity",
-                              cm[2, 0], cm[2, 1], cm[2, 2], np.sum(cm[2, :])))
-        print(template.format("", "Total predicted", np.sum(
-            cm[:, 0]), np.sum(cm[:, 1]), np.sum(cm[:, 2]), ""))
+
+        """
+        The rest is just to pretty print the confusion matrix
+        """
+        # Add column and row totals
+        cm = np.append(cm, [np.sum(cm, axis=0)], axis=0)
+        cm = np.append(cm, np.transpose([np.sum(cm, axis=1)]), axis=1)
+
+        # Pad table to include headers
+        table = np.zeros((cm.shape[0]+3,cm.shape[1]+2), dtype=int)
+        table[3:,2:] = cm
+
+        # Convert table to string
+        table = np.array(table, dtype=str)
+
+        print(np.shape(table))
+        height, width = np.shape(table)
+        table[0,width//2] = "Predicted"
+        table[height//2,0] = "Actual"
+        table[table == "0"] = ""  # Supress 0s from printing
+
+        i = 2
+        for classname in self.class_names:
+            table[1,i] = classname
+            table[i+1,1] = classname
+            i += 1
+
+        longest_cols = [
+            (max([len(str(row[i])) for row in table]) + 3)
+            for i in range(width)
+        ]
+        for i in range(2,width):
+            table[2,i] = "="*(longest_cols[i]-1)
+
+        table[-1,1] = "Total"
+        table[1,-1] = "Total"
+
+        self.print_table(table)
 
 
 def F1_score(y_true, y_pred, smooth=1.0):
@@ -66,7 +111,7 @@ def F1_score(y_true, y_pred, smooth=1.0):
     return tf.reduce_mean(F1)
 
 
-def dice_coef_loss(y_true, y_pred, smooth=1.):
+def dice_coef_loss(y_true, y_pred, smooth=1.0):
 
     y_true_f = K.backend.flatten(y_true)
     y_pred_f = K.backend.flatten(y_pred)
@@ -265,12 +310,15 @@ model_callback = K.callbacks.ModelCheckpoint(
 early_callback = K.callbacks.EarlyStopping(monitor="val_loss",
                                            patience=5, verbose=1)
 
-confusion_callback = ConfusionMatrix(imgs_test, labels_test, 3)
+class_labels = ["Normal", "No Lung Opacity / Not Normal", "Lung Opacity"]
+confusion_callback = ConfusionMatrix(imgs_test, labels_test, class_labels)
 
 callbacks = [tb_callback, model_callback, early_callback, confusion_callback]
 
 model = simple_lenet()
 #model = resnet()
+
+model.load_weights("../models/baseline_classifier.h5")
 
 model.compile(loss="categorical_crossentropy",
               optimizer=K.optimizers.Adam(lr=0.00001),
@@ -278,7 +326,7 @@ model.compile(loss="categorical_crossentropy",
 
 model.summary()
 
-class_weights = {0: 0.25, 1: 0.25, 2: 0.5}
+class_weights = {0: 0.15, 1: 0.15, 2: 0.7}
 print("Class weights = {}".format(class_weights))
 
 model.fit(imgs_train, labels_train,
