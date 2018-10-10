@@ -77,7 +77,6 @@ class ConfusionMatrix(Callback):
         # Convert table to string
         table = np.array(table, dtype=str)
 
-        print(np.shape(table))
         height, width = np.shape(table)
         table[0,width//2] = "Predicted"
         table[height//2,0] = "Actual"
@@ -335,6 +334,6 @@ model.fit(imgs_train, labels_train,
           epochs=epochs,
           batch_size=batch_size,
           verbose=1,
-          class_weight=class_weights,
+          #class_weight=class_weights,
           validation_data=(imgs_test, labels_test),
           callbacks=callbacks)
