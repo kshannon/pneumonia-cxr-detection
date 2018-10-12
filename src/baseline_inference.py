@@ -41,7 +41,10 @@ PREDICTIONS = []
 
 
 #load model
-model = models.load_model('../models/baseline_classifier_good_for_pneumonia.h5')
+# model = models.load_model('../models/baseline_classifier_good_for_pneumonia.h5')
+model = models.load_model('../models/baseline_classifier.h5', compile=False)
+# The "compile=False" looks like it won't try to load in the optimizer or other useless stuff at inference time. So should just be able to do a model.predict() after that.
+
 
 def gen_rand_box():
     def random_num(num):
