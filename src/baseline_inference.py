@@ -66,11 +66,12 @@ def prepare_img(filename):
 def inference(img_path, model, data_path=None):
     """Send an img and model, preprocess the img to training standards, then return a pred"""
     img = prepare_img(img_path)
-    pred_prob = model.predict(img, batch_size=None, steps=1, verbose=0)
+    pred_prob = model.predict(img, batch_size=None, steps=1, verbose=0)[0]
     return np.argmax(pred_prob)
 
 def conf():
     return str(round(random.uniform(0.01,0.99),2))
+
 
 def main():
     directory = os.fsencode(DATA_PATH + 'stage1-test-png/')  #non google cloud = stage_1_test_pngs
@@ -82,7 +83,7 @@ def main():
         if pred_class == 2:
             confidence = conf()
             box = ' '.join(map(str, gen_rand_box()))
-            PREDICTIONS.append((patient_id, confidence + ' ' + box))
+            PREDICTIONS.append((patient_id, CONFIDENCE + ' ' + box))
             # PREDICTIONS.append((patient_id,CONFIDENCE + ' ' + BOX_1 + ' ' + CONFIDENCE + ' ' + BOX_2))
         else: #class 1 or 0
             PREDICTIONS.append((patient_id,None))
