@@ -5,16 +5,16 @@ from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
 
-root_dir = "../../.."
+root_dir = "/home/k_shannon_ucsd/data/"
 
-path = os.path.join(root_dir, "rsna_data_numpy/")
-os.mkdir( path );
+path = os.path.join(root_dir, "stage_1/train_npzs/")
+#os.mkdir( path );
 
 df = pd.read_csv(os.path.join(root_dir, "stage_1_detailed_class_info.csv"))
 
 #filename = "training_images/6a35c51e-1d5b-4a08-b863-071916d08d79.dcm"
 #filename = "training_images/00704310-78a8-4b38-8475-49f4573b2dbb.dcm"
-filename = os.path.join(root_dir, "training_images/00436515-870c-4b36-a041-de91049b9ab4.dcm")
+filename = os.path.join(root_dir, "stage_1/train_imgs/00436515-870c-4b36-a041-de91049b9ab4.dcm")
 itkimage = sitk.ReadImage(filename)
 
 array = sitk.GetArrayFromImage(itkimage)
@@ -40,7 +40,7 @@ idx = 0
 with tqdm(total=df.shape[0]) as pbar:
     for index, row in df.iterrows():
 
-        filename = os.path.join(root_dir, "training_images/" + row["patientId"] + ".dcm")
+        filename = os.path.join(root_dir, "stage_1/train_imgs/" + row["patientId"] + ".dcm")
 
         itkimage = sitk.ReadImage(filename)
 

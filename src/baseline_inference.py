@@ -30,7 +30,7 @@ from tensorflow.keras import models
 # DATA_PATH = stage_1 #path to stage 1 data from config
 DATA_PATH = '../../data/'
 HEADER = ['patientId','PredictionString']
-PREDICT_PATH = '../predictions/baseline_tony.csv'
+PREDICT_PATH = '../predictions/baseline_tony_v2.csv'
 # BOX_1 = '200 200 200 600'
 # BOX_2 = '600 200 200 600'
 CONFIDENCE = '0.9' #? not sure
@@ -69,6 +69,9 @@ def inference(img_path, model, data_path=None):
     pred_prob = model.predict(img, batch_size=None, steps=1, verbose=0)[0]
     return np.argmax(pred_prob)
 
+def conf():
+    return str(round(random.uniform(0.01,0.99),2))
+
 
 def main():
     directory = os.fsencode(DATA_PATH + 'stage1-test-png/')  #non google cloud = stage_1_test_pngs
@@ -78,6 +81,7 @@ def main():
         png_path = os.path.join(DATA_PATH + 'stage1-test-png/', filename)
         pred_class = inference(png_path, model)
         if pred_class == 2:
+            confidence = conf()
             box = ' '.join(map(str, gen_rand_box()))
             PREDICTIONS.append((patient_id, CONFIDENCE + ' ' + box))
             # PREDICTIONS.append((patient_id,CONFIDENCE + ' ' + BOX_1 + ' ' + CONFIDENCE + ' ' + BOX_2))
