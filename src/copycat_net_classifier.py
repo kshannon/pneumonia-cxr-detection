@@ -63,7 +63,7 @@ copycat.compile('adadelta', 'mse')
 
 # TODO: Calculate ious directly for all samples (using slices of the array pred_y for x, y, w, h).
 for epoch in range(num_epochs_flipping):
-    print 'Epoch', epoch
+    print ('Epoch', epoch)
     copycat.fit(train_X, flipped_train_y, nb_epoch=1, validation_data=(test_X, test_y), verbose=2)
     pred_y = copycat.predict(train_X)
 
@@ -152,20 +152,20 @@ for epoch in range(num_epochs_flipping):
         acc_colors_test_epoch[sample, epoch] = np.mean(np.argmax(pred[:, 4+num_shapes:4+num_shapes+num_colors], axis=-1) == np.argmax(exp[:, 4+num_shapes:4+num_shapes+num_colors], axis=-1))
 
 
-    print 'Flipped {} % of all elements'.format(np.mean(flipped[:, epoch]) * 100.)
-    print 'Mean IOU: {}'.format(np.mean(ious_epoch[:, epoch]))
-    print 'Mean dist: {}'.format(np.mean(dists_epoch[:, epoch]))
-    print 'Mean mse: {}'.format(np.mean(mses_epoch[:, epoch]))
-    print 'Accuracy shapes: {}'.format(np.mean(acc_shapes_epoch[:, epoch]))
-    print 'Accuracy colors: {}'.format(np.mean(acc_colors_epoch[:, epoch]))
-
-    print '--------------- TEST ----------------'
-    print 'Flipped {} % of all elements'.format(np.mean(flipped_test[:, epoch]) * 100.)
-    print 'Mean IOU: {}'.format(np.mean(ious_test_epoch[:, epoch]))
-    print 'Mean dist: {}'.format(np.mean(dists_test_epoch[:, epoch]))
-    print 'Mean mse: {}'.format(np.mean(mses_test_epoch[:, epoch]))
-    print 'Accuracy shapes: {}'.format(np.mean(acc_shapes_test_epoch[:, epoch]))
-    print 'Accuracy colors: {}'.format(np.mean(acc_colors_test_epoch[:, epoch]))
+    # print 'Flipped {} % of all elements'.format(np.mean(flipped[:, epoch]) * 100.)
+    # print 'Mean IOU: {}'.format(np.mean(ious_epoch[:, epoch]))
+    # print 'Mean dist: {}'.format(np.mean(dists_epoch[:, epoch]))
+    # print 'Mean mse: {}'.format(np.mean(mses_epoch[:, epoch]))
+    # print 'Accuracy shapes: {}'.format(np.mean(acc_shapes_epoch[:, epoch]))
+    # print 'Accuracy colors: {}'.format(np.mean(acc_colors_epoch[:, epoch]))
+    #
+    # print '--------------- TEST ----------------'
+    # print 'Flipped {} % of all elements'.format(np.mean(flipped_test[:, epoch]) * 100.)
+    # print 'Mean IOU: {}'.format(np.mean(ious_test_epoch[:, epoch]))
+    # print 'Mean dist: {}'.format(np.mean(dists_test_epoch[:, epoch]))
+    # print 'Mean mse: {}'.format(np.mean(mses_test_epoch[:, epoch]))
+    # print 'Accuracy shapes: {}'.format(np.mean(acc_shapes_test_epoch[:, epoch]))
+    # print 'Accuracy colors: {}'.format(np.mean(acc_colors_test_epoch[:, epoch]))
 
 
     # num_epochs_flipping = 50
